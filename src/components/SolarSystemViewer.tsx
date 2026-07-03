@@ -49,16 +49,23 @@ export function SolarSystemViewer() {
       document.documentElement.classList.toggle("pwa-phone", standalone && phone);
       document.documentElement.classList.toggle("phone-browser", phoneBrowser);
 
-      if (phone && vv) {
+      if (phoneBrowser && vv) {
         document.documentElement.style.setProperty(
           "--app-height",
           `${vv.height}px`,
         );
         document.documentElement.style.setProperty(
           "--browser-chrome-bottom",
-          phoneBrowser
-            ? `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`
-            : "0px",
+          `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`,
+        );
+      } else if (phone) {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          `${window.innerHeight}px`,
+        );
+        document.documentElement.style.setProperty(
+          "--browser-chrome-bottom",
+          "0px",
         );
       } else {
         document.documentElement.style.setProperty(
