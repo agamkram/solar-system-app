@@ -12,12 +12,13 @@ import {
 } from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
+  loadPhoneSkyImage,
   loadSkyImageResized,
   textureFromImageSource,
 } from "@/lib/gpu-texture";
 
 function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-phone.jpg?v=1";
+  if (isPhoneDevice()) return "/stars-phone.jpg?v=2";
   return "/stars-8k.jpg";
 }
 
@@ -29,6 +30,7 @@ export function SkyBackground() {
     let texture: THREE.Texture | null = null;
 
     const applySky = async () => {
+      const phone = isPhoneDevice();
       const maxSize = Math.min(
         gl.capabilities.maxTextureSize,
         skyTextureUploadSize(),
@@ -36,7 +38,9 @@ export function SkyBackground() {
 
       try {
         if (isMobileDevice()) {
-          const source = await loadSkyImageResized(skyAssetUrl(), maxSize);
+          const source = phone
+            ? await loadPhoneSkyImage(skyAssetUrl())
+            : await loadSkyImageResized(skyAssetUrl(), maxSize);
           if (cancelled) {
             if ("close" in source && typeof source.close === "function") {
               source.close();
@@ -63,10 +67,14 @@ export function SkyBackground() {
         texture.flipY = true;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.minFilter = THREE.LinearFilter;
+        texture.generateMipmaps = phone;
+        texture.minFilter = phone
+          ? THREE.LinearMipmapLinearFilter
+          : THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
-        texture.generateMipmaps = false;
-        texture.anisotropy = 1;
+        texture.anisotropy = phone
+          ? gl.capabilities.getMaxAnisotropy()
+          : 1;
         texture.needsUpdate = true;
         scene.background = texture;
       } catch {

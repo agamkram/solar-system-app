@@ -87,6 +87,20 @@ export async function loadSkyImageResized(
   }
 }
 
+/** Phone sky is pre-sized to 4096 — decode at native resolution, no resize pass. */
+export async function loadPhoneSkyImage(
+  url: string,
+): Promise<ImageBitmap | HTMLCanvasElement> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+
+  try {
+    return await createImageBitmap(blob);
+  } catch {
+    return loadImageViaCanvas(url, 4096);
+  }
+}
+
 /** Decode and downscale in one step — avoids a full-res 8k/4k RAM spike on phone. */
 export async function loadImageResized(
   url: string,
