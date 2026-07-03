@@ -141,25 +141,27 @@ html.pwa-standalone .viewer-root {
   }
 }
 
-/* Phone: full-bleed background + picker fixed above home indicator */
+/* Phone: fill full screen height, picker flush to bottom */
 @media (pointer: coarse) and (max-width: 767px) {
   html,
   body {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
+    height: var(--screen-h, 100vh);
+    min-height: var(--screen-h, 100vh);
     background: #02040a;
   }
 
   .viewer-root {
-    height: 100vh;
-    height: -webkit-fill-available;
-    min-height: 100vh;
-    overflow-x: hidden;
-    overflow-y: visible;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: auto;
+    height: var(--screen-h, 100vh);
+    min-height: var(--screen-h, 100vh);
+    overflow: hidden;
   }
 
   .viewer-scene {
-    bottom: calc(-1 * var(--safe-bottom, 34px));
+    inset: 0;
   }
 
   .viewer-ui-overlay {
@@ -170,17 +172,17 @@ html.pwa-standalone .viewer-root {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--safe-bottom, 34px);
+    bottom: 0;
     z-index: 10;
     padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
     padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-    padding-bottom: 0.35rem;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px));
   }
 }
 
-/* Phone Safari browser: also clear bottom toolbar */
+/* Phone Safari browser: lift picker above toolbar only */
 html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
-  bottom: calc(var(--browser-chrome-bottom, 0px) + var(--safe-bottom, 34px));
+  bottom: var(--browser-chrome-bottom, 0px);
 }
 
 /* Desktop: planet picker at bottom */
