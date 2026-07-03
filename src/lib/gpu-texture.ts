@@ -62,6 +62,27 @@ function loadImageViaCanvas(
   });
 }
 
+/**
+ * Sky decode — always try resize-during-decode to avoid a full 8k RAM spike on iOS.
+ * Planet textures still use loadImageResized (canvas path on iOS for orientation).
+ */
+export async function loadSkyImageResized(
+  url: string,
+  maxSize: number,
+): Promise<ImageBitmap | HTMLCanvasElement> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+
+  try {
+    return await createImageBitmap(blob, {
+      resizeWidth: maxSize,
+      resizeQuality: "high",
+    });
+  } catch {
+    return loadImageViaCanvas(url, maxSize);
+  }
+}
+
 /** Decode and downscale in one step — avoids a full-res 8k/4k RAM spike on phone. */
 export async function loadImageResized(
   url: string,

@@ -12,13 +12,11 @@ import {
 } from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
-  loadImageResized,
+  loadSkyImageResized,
   textureFromImageSource,
 } from "@/lib/gpu-texture";
 
 function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-4k.jpg";
-  if (isIpadDevice()) return "/stars-4k.jpg";
   return "/stars-8k.jpg";
 }
 
@@ -37,7 +35,7 @@ export function SkyBackground() {
 
       try {
         if (isMobileDevice()) {
-          const source = await loadImageResized(skyAssetUrl(), maxSize);
+          const source = await loadSkyImageResized(skyAssetUrl(), maxSize);
           if (cancelled) {
             if ("close" in source && typeof source.close === "function") {
               source.close();
