@@ -14,6 +14,7 @@ import { SkyBackground } from "./SkyBackground";
 import { TextureWarmup } from "./TextureWarmup";
 
 interface SolarSystemSceneProps {
+  sceneRef?: React.RefObject<HTMLDivElement | null>;
   focusId: string;
   simDays: number;
   epicycleTracing: boolean;
@@ -68,6 +69,7 @@ function SceneContent({
 }
 
 export function SolarSystemScene({
+  sceneRef,
   focusId,
   simDays,
   ...props
@@ -76,7 +78,7 @@ export function SolarSystemScene({
   const initialCamera = useMemo(() => focusCameraState(focusId, 0), [focusId]);
 
   return (
-    <div className="viewer-scene absolute inset-0">
+    <div ref={sceneRef} className="viewer-scene absolute inset-0">
       <Canvas
         className="h-full w-full"
         frameloop="always"

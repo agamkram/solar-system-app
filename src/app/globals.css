@@ -79,7 +79,7 @@ body {
   }
 }
 
-/* Touch (phone + iPad): full viewport, planet picker pinned to bottom */
+/* Touch (phone + iPad): full viewport */
 @media (pointer: coarse) {
   html,
   body {
@@ -99,6 +99,7 @@ body {
   }
 
   .viewer-ui-overlay {
+    z-index: 2;
     height: 100%;
     min-height: 100%;
     padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
@@ -106,82 +107,43 @@ body {
     padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
     padding-bottom: 0;
   }
+}
 
-  .viewer-orb-dock {
+/* iPad: planet picker at bottom of viewer */
+@media (pointer: coarse) and (min-width: 768px) {
+  .viewer-root > :last-child {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 3;
     padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
     padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-  }
-}
-
-/* iPad: planet card flush to bottom — safe-area only */
-@media (pointer: coarse) and (min-width: 768px) {
-  .viewer-orb-dock {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
-/* Phone: bleed sky under home indicator, picker at screen bottom */
-@media (pointer: coarse) and (max-width: 767px) {
-  html,
-  body {
-    min-height: var(--app-height, 100vh);
-    min-height: -webkit-fill-available;
-    background: #02040a;
-  }
-
-  .viewer-root {
-    min-height: max(
-      var(--app-height, 100vh),
-      calc(100vh + env(safe-area-inset-bottom, 0px))
-    );
-    height: 100vh;
-    height: -webkit-fill-available;
-    overflow-x: hidden;
-    overflow-y: visible;
-  }
-
-  .viewer-scene {
-    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-  }
-
-  .viewer-ui-overlay {
-    z-index: 2;
-  }
-
-  .viewer-orb-dock {
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
-  }
+/* Phone: JS sets fixed dock + scene bleed; keep overlay above canvas */
+html.touch-phone .viewer-ui-overlay {
+  z-index: 2;
 }
 
-/* Phone home screen: 100vh fills under home indicator (dvh leaves a gap) */
-html.pwa-standalone.pwa-phone .viewer-root {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  height: 100vh;
-  height: -webkit-fill-available;
+html.touch-phone .viewer-root {
+  background: #02040a;
 }
 
-html.pwa-standalone.pwa-phone .viewer-ui-overlay {
-  padding-bottom: 0;
-}
-
-/* Phone Safari browser: lift picker above toolbar, keep canvas full screen */
-html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
-  bottom: var(--browser-chrome-bottom, 0px);
-}
-
-/* Desktop: compact speed card + planet picker at bottom */
+/* Desktop: planet picker pinned to bottom of viewer */
 @media (pointer: fine) {
   .viewer-ui-overlay {
     padding: 0.75rem;
   }
 
-  .viewer-orb-dock {
-    margin-top: auto;
+  .viewer-root > :last-child {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 3;
   }
 
   .time-controls-card {
