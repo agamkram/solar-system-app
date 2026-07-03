@@ -4,8 +4,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 
 import type { BodyDefinition } from "@/lib/bodies";
-import { isMobileDevice } from "@/lib/device-profile";
-import { buildOrbitLoopPoints } from "@/lib/orbits";
+import { createOrbitCurve, orbitTubeTubularSegments } from "@/lib/orbits";
 import { orbitRadiusScene } from "@/lib/scale";
 
 interface OrbitRingProps {
@@ -31,32 +30,21 @@ export function OrbitRing({
   const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
 
   const geometry = useMemo(() => {
-    const points = buildOrbitLoopPoints(body, semiMajor);
-    if (points.length < 4) return null;
-
-    const curve = new THREE.CatmullRomCurve3(points, true, "catmullrom", 0.5);
-    const tubularSegments = Math.min(
-      4096,
-      Math.max(1024, points.length * 2),
-    );
-    const radialSegments = isMobileDevice() ? 5 : 6;
-
+    const curve = createOrbitCurve(body, semiMajor);
     return new THREE.TubeGeometry(
       curve,
-      tubularSegments,
+      orbitTubeTubularSegments(),
       orbitTubeRadius(majorAxis, lineWidth),
-      radialSegments,
+      12,
       true,
     );
   }, [body, semiMajor, majorAxis, lineWidth]);
 
   useEffect(() => {
     return () => {
-      geometry?.dispose();
+      geometry.dispose();
     };
   }, [geometry]);
-
-  if (!geometry) return null;
 
   return (
     <mesh geometry={geometry} frustumCulled={false} renderOrder={0}>

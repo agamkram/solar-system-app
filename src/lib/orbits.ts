@@ -176,6 +176,70 @@ export function computeBodyStates(
   return states;
 }
 
+class CircularOrbitCurve extends THREE.Curve<THREE.Vector3> {
+  constructor(private readonly radius: number) {
+    super();
+  }
+
+  getPoint(t: number, optionalTarget = new THREE.Vector3()): THREE.Vector3 {
+    const theta = t * TAU;
+    return optionalTarget.set(
+      Math.sin(theta) * this.radius,
+      0,
+      Math.cos(theta) * this.radius,
+    );
+  }
+}
+
+class KeplerOrbitCurve extends THREE.Curve<THREE.Vector3> {
+  private readonly eccentricity: number;
+  private readonly inclination: number;
+  private readonly ascendingNode: number;
+  private readonly argumentOfPerihelion: number;
+
+  constructor(
+    private readonly semiMajor: number,
+    body: BodyDefinition,
+  ) {
+    super();
+    this.eccentricity = body.eccentricity ?? 0;
+    this.inclination = (body.orbitInclinationDeg ?? 0) * DEG;
+    this.ascendingNode = (body.longitudeOfAscendingNodeDeg ?? 0) * DEG;
+    this.argumentOfPerihelion = (body.argumentOfPerihelionDeg ?? 0) * DEG;
+  }
+
+  getPoint(t: number, optionalTarget = new THREE.Vector3()): THREE.Vector3 {
+    const meanAnomaly = t * TAU;
+    const eccentricAnomaly = solveKepler(meanAnomaly, this.eccentricity);
+    const nu = trueAnomaly(eccentricAnomaly, this.eccentricity);
+    const point = positionFromTrueAnomaly(
+      nu,
+      this.semiMajor,
+      this.eccentricity,
+      this.inclination,
+      this.ascendingNode,
+      this.argumentOfPerihelion,
+    );
+    return optionalTarget.copy(point);
+  }
+}
+
+/** Exact parametric orbit curve — no chord sampling artifacts when tubed. */
+export function createOrbitCurve(
+  body: BodyDefinition,
+  semiMajor?: number,
+): THREE.Curve<THREE.Vector3> {
+  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
+  if (hasKeplerianOrbit(body)) {
+    return new KeplerOrbitCurve(majorAxis, body);
+  }
+  return new CircularOrbitCurve(majorAxis);
+}
+
+export function orbitTubeTubularSegments(): number {
+  return 8192;
+}
+
 export function buildOrbitLoopPoints(
   body: BodyDefinition,
   semiMajor?: number,
