@@ -74,7 +74,7 @@ export function SolarSystemScene({
   const initialCamera = useMemo(() => focusCameraState(focusId, 0), [focusId]);
 
   return (
-    <div className="absolute inset-0">
+    <div className="viewer-scene absolute inset-0">
       <Canvas
         className="h-full w-full"
         frameloop="always"

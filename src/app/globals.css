@@ -102,13 +102,37 @@ html.pwa-standalone .viewer-ui-overlay {
     calc(0.75rem + env(safe-area-inset-left, 0px));
 }
 
-/* Phone home screen: planet picker flush to bottom */
+/* Phone home screen: full-bleed background + planet picker at bottom */
+html.pwa-standalone.pwa-phone,
+html.pwa-standalone.pwa-phone body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+html.pwa-standalone.pwa-phone .viewer-root {
+  /* 100vh fills under the home indicator; dvh leaves a gap on iOS PWA */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+html.pwa-standalone.pwa-phone .viewer-scene {
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+}
+
 html.pwa-standalone.pwa-phone .viewer-ui-overlay {
   padding-bottom: 0;
 }
 
 html.pwa-standalone.pwa-phone .viewer-orb-dock {
-  padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* Desktop: compact speed card */
