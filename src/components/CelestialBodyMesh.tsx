@@ -6,8 +6,7 @@ import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { type BodyDefinition } from "@/lib/bodies";
-import { isPhoneDevice, sphereSegments } from "@/lib/device-profile";
-import { shouldGpuLoadBodyTextures } from "@/lib/mobile-texture-policy";
+import { sphereSegments } from "@/lib/device-profile";
 import { bodyRadiusScene } from "@/lib/scale";
 import { rotationSpeedRadPerDay } from "@/lib/orbits";
 import { createSaturnRingGeometry } from "@/lib/saturn-ring-geometry";
@@ -16,7 +15,6 @@ import { loadTextureQueued } from "@/lib/texture-loader";
 
 export interface CelestialBodyMeshProps {
   body: BodyDefinition;
-  focusId: string;
   simDaysRef: React.RefObject<number>;
 }
 
@@ -50,19 +48,13 @@ function useBodyMotion(
   });
 }
 
-function getTexturePaths(body: BodyDefinition, focusId: string): string[] {
-  if (!shouldGpuLoadBodyTextures(body.id, focusId)) {
-    return [];
-  }
+function getTexturePaths(body: BodyDefinition): string[] {
   return [body.texture, body.atmosphereTexture, body.ringTexture].filter(
     Boolean,
   ) as string[];
 }
 
-function useQueuedBodyTextures(
-  paths: string[],
-  bodyId: string,
-): (THREE.Texture | null)[] {
+function useQueuedBodyTextures(paths: string[]): (THREE.Texture | null)[] {
   const { gl } = useThree();
   const [textures, setTextures] = useState<(THREE.Texture | null)[]>(() =>
     paths.map(() => null),
@@ -73,7 +65,7 @@ function useQueuedBodyTextures(
 
     let active = true;
     paths.forEach((path, index) => {
-      loadTextureQueued(path, gl, bodyId)
+      loadTextureQueued(path, gl)
         .then((texture) => {
           if (!active) return;
           setTextures((current) => {
@@ -91,7 +83,7 @@ function useQueuedBodyTextures(
     return () => {
       active = false;
     };
-  }, [paths.join("|"), gl, bodyId]);
+  }, [paths.join("|"), gl]);
 
   return textures;
 }
@@ -157,11 +149,7 @@ function CelestialBodyVisual({
   const ringGeometry = useMemo(
     () =>
       body.ringTexture
-        ? createSaturnRingGeometry(
-            ringInner,
-            ringOuter,
-            isPhoneDevice() ? 48 : 128,
-          )
+        ? createSaturnRingGeometry(ringInner, ringOuter, 128)
         : null,
     [body.ringTexture, ringInner, ringOuter],
   );
@@ -261,8 +249,8 @@ function CelestialBodyVisual({
 }
 
 export function CelestialBodyMesh(props: CelestialBodyMeshProps) {
-  const texturePaths = getTexturePaths(props.body, props.focusId);
-  const loadedTextures = useQueuedBodyTextures(texturePaths, props.body.id);
+  const texturePaths = getTexturePaths(props.body);
+  const loadedTextures = useQueuedBodyTextures(texturePaths);
 
   let textureIndex = 0;
   const map = props.body.texture ? loadedTextures[textureIndex++] : null;

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
-import { isPhoneDevice, orbitLineDivisionCap } from "./device-profile";
+import { orbitLineDivisionCap } from "./device-profile";
 import { orbitRadiusScene } from "./scale";
 
 const DEG = Math.PI / 180;
@@ -250,61 +250,12 @@ export function createOrbitCurve(
   return new CircularOrbitCurve(majorAxis);
 }
 
-/** Uniform mean-anomaly samples — cheap on phone, fine with canvas round-joins. */
-function buildOrbitLinePointsUniform(
-  body: BodyDefinition,
-  semiMajor: number | undefined,
-  divisions: number,
-): THREE.Vector3[] {
-  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
-  const points: THREE.Vector3[] = [];
-
-  if (!hasKeplerianOrbit(body)) {
-    for (let i = 0; i <= divisions; i++) {
-      const theta = (i / divisions) * TAU;
-      points.push(
-        new THREE.Vector3(
-          Math.sin(theta) * majorAxis,
-          0,
-          Math.cos(theta) * majorAxis,
-        ),
-      );
-    }
-    return points;
-  }
-
-  const eccentricity = body.eccentricity ?? 0;
-  const inclination = (body.orbitInclinationDeg ?? 0) * DEG;
-  const ascendingNode = (body.longitudeOfAscendingNodeDeg ?? 0) * DEG;
-  const argumentOfPerihelion = (body.argumentOfPerihelionDeg ?? 0) * DEG;
-
-  for (let i = 0; i <= divisions; i++) {
-    const meanAnomaly = (i / divisions) * TAU;
-    const eccentricAnomaly = solveKepler(meanAnomaly, eccentricity);
-    const nu = trueAnomaly(eccentricAnomaly, eccentricity);
-    points.push(
-      positionFromTrueAnomaly(
-        nu,
-        majorAxis,
-        eccentricity,
-        inclination,
-        ascendingNode,
-        argumentOfPerihelion,
-      ),
-    );
-  }
-  return points;
-}
-
-/** Samples along the orbital path for canvas overlay strokes. */
+/** Arc-length uniform samples — equal spacing along the orbital path. */
 export function buildOrbitLinePoints(
   body: BodyDefinition,
   semiMajor: number | undefined,
   divisions: number,
 ): THREE.Vector3[] {
-  if (isPhoneDevice()) {
-    return buildOrbitLinePointsUniform(body, semiMajor, divisions);
-  }
   return createOrbitCurve(body, semiMajor).getSpacedPoints(divisions);
 }
 
