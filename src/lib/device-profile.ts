@@ -36,7 +36,12 @@ export function isPhoneDevice(): boolean {
 }
 
 export function canvasDpr(): number | [number, number] {
-  return isMobileDevice() ? 1 : [1, 2];
+  if (typeof window === "undefined") return 1;
+  if (isPhoneDevice()) {
+    return Math.min(window.devicePixelRatio || 1, 2);
+  }
+  if (isMobileDevice()) return 1;
+  return [1, 2];
 }
 
 export function sphereSegments(bodyId: string, kind: string): number {
@@ -59,7 +64,7 @@ export function maxTextureUploadSize(): number {
 }
 
 export function skyTextureUploadSize(): number {
-  if (isPhoneDevice()) return 4096;
+  if (isPhoneDevice()) return 8192;
   if (isIpadDevice()) return 8192;
   return 8192;
 }

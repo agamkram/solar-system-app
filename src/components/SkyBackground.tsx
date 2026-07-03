@@ -12,13 +12,11 @@ import {
 } from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
-  loadPhoneSkyImage,
   loadSkyImageResized,
   textureFromImageSource,
 } from "@/lib/gpu-texture";
 
 function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-phone.jpg?v=3";
   return "/stars-8k.jpg";
 }
 
@@ -30,7 +28,6 @@ export function SkyBackground() {
     let texture: THREE.Texture | null = null;
 
     const applySky = async () => {
-      const phone = isPhoneDevice();
       const maxSize = Math.min(
         gl.capabilities.maxTextureSize,
         skyTextureUploadSize(),
@@ -38,9 +35,7 @@ export function SkyBackground() {
 
       try {
         if (isMobileDevice()) {
-          const source = phone
-            ? await loadPhoneSkyImage(skyAssetUrl())
-            : await loadSkyImageResized(skyAssetUrl(), maxSize);
+          const source = await loadSkyImageResized(skyAssetUrl(), maxSize);
           if (cancelled) {
             if ("close" in source && typeof source.close === "function") {
               source.close();

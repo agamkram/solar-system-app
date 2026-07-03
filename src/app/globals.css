@@ -146,17 +146,41 @@ body {
 
   .viewer-ui-overlay {
     z-index: 2;
+    height: 100%;
+    min-height: 100%;
   }
 
-  /* Lift card a few px so rounded corners stay on screen */
   .viewer-orb-dock {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.55rem);
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+}
+
+/* Phone home screen: full height + picker pinned to bottom */
+html.pwa-standalone.pwa-phone .viewer-root {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+html.pwa-standalone.pwa-phone .viewer-scene {
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+}
+
+html.pwa-standalone.pwa-phone .viewer-ui-overlay {
+  padding-bottom: 0;
+}
+
+html.pwa-standalone.pwa-phone .viewer-orb-dock {
+  bottom: 0;
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* Phone Safari browser: lift picker above toolbar, keep canvas full screen */
 html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
   bottom: var(--browser-chrome-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Desktop: compact speed card + planet picker at bottom */
