@@ -8,46 +8,12 @@ import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES, type BodyDefinition } from "@/lib/bodies";
 import { isPhoneDevice, orbitLineDivisionCap } from "@/lib/device-profile";
 import { buildOrbitLinePoints, orbitLineDivisions } from "@/lib/orbits";
-import { bodyRadiusScene, orbitRadiusScene } from "@/lib/scale";
+import { orbitRadiusScene } from "@/lib/scale";
 
 const WORLD = new THREE.Vector3();
 const PROJ = new THREE.Vector3();
 const ZERO = new THREE.Vector3();
 const GROUP_OFFSET = new THREE.Vector3();
-const CAM_POS = new THREE.Vector3();
-const RAY_DIR = new THREE.Vector3();
-const OC_VEC = new THREE.Vector3();
-
-interface BodyOccluder {
-  center: THREE.Vector3;
-  radius: number;
-}
-
-function isOccludedByBodies(
-  world: THREE.Vector3,
-  occluders: BodyOccluder[],
-  camera: THREE.Camera,
-): boolean {
-  CAM_POS.copy(camera.position);
-  RAY_DIR.copy(world).sub(CAM_POS);
-  const distPoint = RAY_DIR.length();
-  if (distPoint < 1e-6) return false;
-  RAY_DIR.divideScalar(distPoint);
-
-  for (const { center, radius } of occluders) {
-    OC_VEC.copy(CAM_POS).sub(center);
-    const b = OC_VEC.dot(RAY_DIR);
-    const c = OC_VEC.lengthSq() - radius * radius;
-    const discriminant = b * b - c;
-    if (discriminant < 0) continue;
-
-    const tEnter = -b - Math.sqrt(discriminant);
-    if (tEnter > 1e-4 && tEnter < distPoint - 1e-4) return true;
-    if (world.distanceToSquared(center) < radius * radius) return true;
-  }
-
-  return false;
-}
 
 const LOD_INTERVAL_SEC = 0.5;
 const LOD_CHANGE_RATIO = 1.5;
@@ -72,7 +38,6 @@ function strokeOrbit(
   height: number,
   opacity: number,
   lineWidth: number,
-  occluders: BodyOccluder[],
 ) {
   let drawing = false;
 
@@ -81,7 +46,7 @@ function strokeOrbit(
     WORLD.copy(points[i]).add(anchor).add(groupOffset);
     PROJ.copy(WORLD).project(camera);
 
-    if (PROJ.z > 1 || isOccludedByBodies(WORLD, occluders, camera)) {
+    if (PROJ.z > 1) {
       drawing = false;
       continue;
     }
@@ -101,7 +66,7 @@ function strokeOrbit(
 
   WORLD.copy(points[0]).add(anchor).add(groupOffset);
   PROJ.copy(WORLD).project(camera);
-  if (PROJ.z <= 1 && !isOccludedByBodies(WORLD, occluders, camera)) {
+  if (PROJ.z <= 1) {
     const x = (PROJ.x * 0.5 + 0.5) * width;
     const y = (-PROJ.y * 0.5 + 0.5) * height;
     ctx.lineTo(x, y);
@@ -130,12 +95,6 @@ export function OrbitLinesOverlay({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointsRef = useRef<Map<string, THREE.Vector3[]>>(new Map());
-  const occludersRef = useRef<BodyOccluder[]>(
-    BODIES.map((body) => ({
-      center: new THREE.Vector3(),
-      radius: bodyRadiusScene(body.radiusKm),
-    })),
-  );
   const lodTimerRef = useRef(0);
   const sampleKeyRef = useRef("");
   const buildQueueRef = useRef(0);
@@ -294,14 +253,6 @@ export function OrbitLinesOverlay({
       GROUP_OFFSET.set(0, 0, 0);
     }
 
-    const occluders = occludersRef.current;
-    for (let i = 0; i < BODIES.length; i++) {
-      const state = states.get(BODIES[i].id);
-      if (state) {
-        occluders[i].center.copy(state.localPosition).add(GROUP_OFFSET);
-      }
-    }
-
     for (const path of paths) {
       const points = pointsRef.current.get(path.body.id);
       if (!points || points.length < 2) continue;
@@ -321,7 +272,6 @@ export function OrbitLinesOverlay({
         size.height,
         path.opacity,
         path.lineWidth,
-        occluders,
       );
     }
   });
