@@ -27,6 +27,11 @@ body {
   color: var(--foreground);
 }
 
+.viewer-root {
+  height: 100dvh;
+  height: -webkit-fill-available;
+}
+
 .time-speed-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -75,64 +80,67 @@ body {
   }
 }
 
-/* iOS Add to Home Screen — fill screen, safe-area UI */
-html.pwa-standalone,
-html.pwa-standalone body {
-  height: 100%;
-  min-height: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  max-height: none;
+/* Touch (phone + iPad): full viewport, planet picker pinned to bottom */
+@media (pointer: coarse) {
+  body {
+    max-height: none;
+  }
+
+  .viewer-root {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: var(--app-height, 100vh);
+    min-height: -webkit-fill-available;
+  }
+
+  .viewer-ui-overlay {
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+    padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+    padding-bottom: 0;
+  }
+
+  .viewer-orb-dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
-html.pwa-standalone .viewer-root {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-}
+/* Phone: bleed sky/background under home indicator */
+@media (pointer: coarse) and (max-width: 767px) {
+  html,
+  body {
+    min-height: var(--app-height, 100vh);
+    min-height: -webkit-fill-available;
+    background: #02040a;
+  }
 
-html.pwa-standalone .viewer-ui-overlay {
-  padding:
-    calc(0.75rem + env(safe-area-inset-top, 0px))
-    calc(0.75rem + env(safe-area-inset-right, 0px))
-    calc(0.75rem + env(safe-area-inset-bottom, 0px))
-    calc(0.75rem + env(safe-area-inset-left, 0px));
-}
+  .viewer-root {
+    min-height: max(
+      var(--app-height, 100vh),
+      calc(100vh + env(safe-area-inset-bottom, 0px))
+    );
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
 
-/* Phone home screen: full-bleed background + planet picker at bottom */
-html.pwa-standalone.pwa-phone,
-html.pwa-standalone.pwa-phone body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-}
+  .viewer-scene {
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  }
 
-html.pwa-standalone.pwa-phone .viewer-root {
-  /* 100vh fills under the home indicator; dvh leaves a gap on iOS PWA */
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  height: 100vh;
-  height: -webkit-fill-available;
-}
-
-html.pwa-standalone.pwa-phone .viewer-scene {
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-}
-
-html.pwa-standalone.pwa-phone .viewer-ui-overlay {
-  padding-bottom: 0;
-}
-
-html.pwa-standalone.pwa-phone .viewer-orb-dock {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
-  padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  .viewer-ui-overlay {
+    z-index: 2;
+  }
 }
 
 /* Desktop: compact speed card */

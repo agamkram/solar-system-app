@@ -32,6 +32,13 @@ export function SolarSystemViewer() {
   }, [epicycleTracing]);
 
   useEffect(() => {
+    const syncViewport = () => {
+      document.documentElement.style.setProperty(
+        "--app-height",
+        `${window.innerHeight}px`,
+      );
+    };
+
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator &&
@@ -39,6 +46,17 @@ export function SolarSystemViewer() {
     const phone = window.matchMedia("(max-width: 767px)").matches;
     document.documentElement.classList.toggle("pwa-standalone", !!standalone);
     document.documentElement.classList.toggle("pwa-phone", !!standalone && phone);
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    window.visualViewport?.addEventListener("resize", syncViewport);
+    window.visualViewport?.addEventListener("scroll", syncViewport);
+
+    return () => {
+      window.removeEventListener("resize", syncViewport);
+      window.visualViewport?.removeEventListener("resize", syncViewport);
+      window.visualViewport?.removeEventListener("scroll", syncViewport);
+    };
   }, []);
 
   const handleNow = useCallback(() => {
@@ -48,7 +66,7 @@ export function SolarSystemViewer() {
   }, []);
 
   return (
-    <div className="viewer-root relative h-dvh w-full overflow-hidden bg-[#02040a]">
+    <div className="viewer-root relative w-full overflow-hidden bg-[#02040a]">
       <SolarSystemScene
         focusId={focusId}
         simDays={simDays}
@@ -60,7 +78,7 @@ export function SolarSystemViewer() {
         onSimDaysChange={setSimDays}
       />
 
-      <div className="viewer-ui-overlay pointer-events-none absolute inset-0 flex flex-col justify-between p-3 sm:p-4">
+      <div className="viewer-ui-overlay pointer-events-none absolute inset-0 flex flex-col">
         <header className="pointer-events-none flex items-start justify-between gap-3">
           <TimeControls
             simDays={simDays}
