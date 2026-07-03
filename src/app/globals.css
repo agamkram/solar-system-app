@@ -136,6 +136,14 @@ body {
     background: #02040a;
   }
 
+  .viewer-root {
+    overflow: hidden;
+  }
+
+  .viewer-scene {
+    inset: 0;
+  }
+
   .viewer-ui-overlay {
     z-index: 2;
   }
@@ -146,29 +154,9 @@ body {
   }
 }
 
-/* Phone home screen: bleed sky under home indicator */
-html.pwa-standalone.pwa-phone .viewer-root {
-  min-height: max(
-    var(--app-height, 100vh),
-    calc(100vh + env(safe-area-inset-bottom, 0px))
-  );
-  overflow-x: hidden;
-  overflow-y: visible;
-}
-
-html.pwa-standalone.pwa-phone .viewer-scene {
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-}
-
-/* Phone Safari browser: shrink above bottom toolbar */
-html.phone-browser:not(.pwa-standalone) .viewer-root {
+/* Phone Safari browser: lift picker above toolbar, keep canvas full screen */
+html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
   bottom: var(--browser-chrome-bottom, 0px);
-  height: auto;
-  min-height: auto;
-}
-
-html.phone-browser:not(.pwa-standalone) .viewer-scene {
-  bottom: 0;
 }
 
 /* Desktop: compact speed card + planet picker at bottom */

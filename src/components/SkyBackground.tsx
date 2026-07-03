@@ -18,7 +18,7 @@ import {
 } from "@/lib/gpu-texture";
 
 function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-phone.jpg?v=2";
+  if (isPhoneDevice()) return "/stars-phone.jpg?v=3";
   return "/stars-8k.jpg";
 }
 
@@ -67,14 +67,10 @@ export function SkyBackground() {
         texture.flipY = true;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.generateMipmaps = phone;
-        texture.minFilter = phone
-          ? THREE.LinearMipmapLinearFilter
-          : THREE.LinearFilter;
+        texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
-        texture.anisotropy = phone
-          ? gl.capabilities.getMaxAnisotropy()
-          : 1;
+        texture.generateMipmaps = false;
+        texture.anisotropy = 1;
         texture.needsUpdate = true;
         scene.background = texture;
       } catch {

@@ -36,13 +36,7 @@ export function isPhoneDevice(): boolean {
 }
 
 export function canvasDpr(): number | [number, number] {
-  if (typeof window === "undefined") return 1;
-  // Phone: 1x canvas made any sky texture look identical — render sharper, cap at 2x.
-  if (isPhoneDevice()) {
-    return Math.min(window.devicePixelRatio || 1, 2);
-  }
-  if (isMobileDevice()) return 1;
-  return [1, 2];
+  return isMobileDevice() ? 1 : [1, 2];
 }
 
 export function sphereSegments(bodyId: string, kind: string): number {
