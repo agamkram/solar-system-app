@@ -90,8 +90,82 @@ body {
   }
 }
 
-/* Touch: easier speed slider (phone + iPad) */
+/* Touch: shared speed slider track */
 @media (pointer: coarse) {
+  .time-controls-card .time-controls-speed-labels span:last-child {
+    width: 4.75rem;
+  }
+
+  .time-controls-card .time-controls-slider {
+    background: transparent;
+  }
+
+  .time-controls-card .time-controls-slider::-webkit-slider-runnable-track {
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.15);
+  }
+
+  .time-controls-card .time-controls-slider::-moz-range-track {
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.15);
+  }
+
+  .time-controls-card .time-controls-slider::-webkit-slider-thumb {
+    border-width: 2px;
+  }
+
+  .time-controls-card .time-controls-slider::-moz-range-thumb {
+    border-width: 2px;
+  }
+}
+
+/* Phone: match planet card height, still touch-friendly */
+@media (pointer: coarse) and (max-width: 767px) {
+  .time-controls-card {
+    width: min(100%, 11rem);
+    padding: 0.35rem 0.55rem;
+  }
+
+  .time-controls-card .time-controls-speed {
+    margin-top: 0.25rem;
+  }
+
+  .time-controls-card .time-controls-speed-labels {
+    margin-bottom: 0.125rem;
+  }
+
+  .time-controls-card .time-controls-slider {
+    height: 1.1rem;
+    padding: 0.25rem 0;
+  }
+
+  .time-controls-card .time-controls-slider::-webkit-slider-runnable-track {
+    height: 0.35rem;
+  }
+
+  .time-controls-card .time-controls-slider::-moz-range-track {
+    height: 0.35rem;
+  }
+
+  .time-controls-card .time-controls-slider::-webkit-slider-thumb {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: -0.35rem;
+  }
+
+  .time-controls-card .time-controls-slider::-moz-range-thumb {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+}
+
+/* iPad: wider card + large touch slider */
+@media (pointer: coarse) and (min-width: 768px) {
+  .time-controls-card {
+    width: 12.5rem;
+    padding: 0.34rem 0.6rem;
+  }
+
   .time-controls-card .time-controls-speed {
     margin-top: 0.34rem;
   }
@@ -100,54 +174,27 @@ body {
     margin-bottom: 0.2rem;
   }
 
-  .time-controls-card .time-controls-speed-labels span:last-child {
-    width: 4.75rem;
-  }
-
   .time-controls-card .time-controls-slider {
     height: 1.75rem;
     padding: 0.5rem 0;
-    background: transparent;
   }
 
   .time-controls-card .time-controls-slider::-webkit-slider-runnable-track {
     height: 0.4rem;
-    border-radius: 9999px;
-    background: rgb(255 255 255 / 0.15);
   }
 
   .time-controls-card .time-controls-slider::-moz-range-track {
     height: 0.4rem;
-    border-radius: 9999px;
-    background: rgb(255 255 255 / 0.15);
   }
 
   .time-controls-card .time-controls-slider::-webkit-slider-thumb {
     width: 1.35rem;
     height: 1.35rem;
     margin-top: -0.475rem;
-    border-width: 2px;
   }
 
   .time-controls-card .time-controls-slider::-moz-range-thumb {
     width: 1.35rem;
     height: 1.35rem;
-    border-width: 2px;
-  }
-}
-
-/* Phone: wider card, fits narrow screens */
-@media (pointer: coarse) and (max-width: 767px) {
-  .time-controls-card {
-    width: min(100%, 11rem);
-    padding: 0.34rem 0.55rem;
-  }
-}
-
-/* iPad: wider card */
-@media (pointer: coarse) and (min-width: 768px) {
-  .time-controls-card {
-    width: 12.5rem;
-    padding: 0.34rem 0.6rem;
   }
 }
