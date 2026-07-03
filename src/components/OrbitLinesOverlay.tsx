@@ -15,12 +15,15 @@ const ZERO = new THREE.Vector3();
 
 const LOD_INTERVAL_SEC = 0.5;
 const LOD_CHANGE_RATIO = 1.5;
+const PLANET_LINE_WIDTH = 0.5;
+const MOON_LINE_WIDTH = 0.4;
 
 interface OrbitPathDef {
   body: BodyDefinition;
   semiMajor: number;
   parentId: string | null;
   opacity: number;
+  lineWidth: number;
 }
 
 function strokeOrbit(
@@ -32,6 +35,7 @@ function strokeOrbit(
   width: number,
   height: number,
   opacity: number,
+  lineWidth: number,
 ) {
   let drawing = false;
 
@@ -67,7 +71,7 @@ function strokeOrbit(
   }
 
   ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = lineWidth;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.stroke();
@@ -101,6 +105,7 @@ export function OrbitLinesOverlay({
           semiMajor: orbitRadiusScene(body.distanceAu),
           parentId: null,
           opacity: 0.9,
+          lineWidth: PLANET_LINE_WIDTH,
         });
       }
     }
@@ -112,6 +117,7 @@ export function OrbitLinesOverlay({
         semiMajor: orbitRadiusScene(body.distanceAu),
         parentId: body.parentId ?? "sun",
         opacity: 0.55,
+        lineWidth: MOON_LINE_WIDTH,
       });
     }
 
@@ -244,6 +250,7 @@ export function OrbitLinesOverlay({
         size.width,
         size.height,
         path.opacity,
+        path.lineWidth,
       );
     }
   });
