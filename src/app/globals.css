@@ -112,7 +112,18 @@ body {
     bottom: 0;
     padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
     padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* iPad: planet card flush to bottom — safe-area only, no extra lift */
+@media (pointer: coarse) and (min-width: 768px) {
+  html,
+  body {
+    min-height: var(--app-height, 100vh);
+  }
+
+  .viewer-orb-dock {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -140,6 +151,11 @@ body {
 
   .viewer-ui-overlay {
     z-index: 2;
+  }
+
+  /* Lift card a few px so rounded corners stay on screen */
+  .viewer-orb-dock {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.55rem);
   }
 }
 
