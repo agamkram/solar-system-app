@@ -203,6 +203,8 @@ export function EpicycleTrails({
   useFrame(() => {
     if (!tracing || !focus) return;
 
+    camera.updateMatrixWorld();
+
     const days = simDaysRef.current ?? 0;
     const last = lastSampledDaysRef.current;
     if (last !== null && days !== last) {
@@ -249,7 +251,7 @@ export function EpicycleTrails({
         TRAIL_COLORS[body.id] ?? "#aaaaaa",
       );
     }
-  });
+  }, 1);
 
   return null;
 }
