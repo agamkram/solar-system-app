@@ -43,6 +43,7 @@ export function SolarSystemBodies({
           <CelestialBodyMesh
             key={body.id}
             body={body}
+            focusId={focusId}
             simDaysRef={simDaysRef}
           />
         ))}

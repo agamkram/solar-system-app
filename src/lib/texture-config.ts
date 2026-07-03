@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { isMobileDevice } from "./device-profile";
+import { isMobileDevice, useTextureMipmaps } from "./device-profile";
 
 export function configureColorMap(
   texture: THREE.Texture,
@@ -9,12 +9,13 @@ export function configureColorMap(
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  const mipmaps = useTextureMipmaps();
+  texture.minFilter = mipmaps
+    ? THREE.LinearMipmapLinearFilter
+    : THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   const maxAniso = renderer?.capabilities.getMaxAnisotropy() ?? 1;
-  texture.anisotropy = isMobileDevice()
-    ? Math.min(4, maxAniso)
-    : maxAniso;
-  texture.generateMipmaps = true;
+  texture.anisotropy = isMobileDevice() ? 1 : maxAniso;
+  texture.generateMipmaps = mipmaps;
   texture.needsUpdate = true;
 }

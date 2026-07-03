@@ -1,7 +1,16 @@
 import * as THREE from "three";
 
-import { maxConcurrentTextureLoads } from "./device-profile";
+import {
+  isPhoneDevice,
+  maxConcurrentTextureLoads,
+  maxTextureUploadSize,
+} from "./device-profile";
 import { configureColorMap } from "./texture-config";
+import {
+  fitTextureToGpuLimit,
+  loadImageResized,
+  textureFromImageSource,
+} from "./gpu-texture";
 
 interface QueueJob {
   url: string;
@@ -30,15 +39,25 @@ function pumpQueue() {
   }
 }
 
-function loadTextureImmediate(
+async function loadTextureImmediate(
   url: string,
   gl: THREE.WebGLRenderer,
 ): Promise<THREE.Texture> {
+  const maxSize = maxTextureUploadSize();
+
+  if (isPhoneDevice()) {
+    const source = await loadImageResized(url, maxSize);
+    const texture = textureFromImageSource(source, maxSize);
+    configureColorMap(texture, gl);
+    return texture;
+  }
+
   return new Promise((resolve, reject) => {
     const loader = new THREE.TextureLoader();
     loader.load(
       url,
       (texture) => {
+        fitTextureToGpuLimit(texture, maxSize);
         configureColorMap(texture, gl);
         resolve(texture);
       },
@@ -48,7 +67,7 @@ function loadTextureImmediate(
   });
 }
 
-/** Full-resolution textures, uploaded sequentially on mobile to avoid GPU OOM. */
+/** Queued loads — one at a time on phone; resized before GPU upload. */
 export function loadTextureQueued(
   url: string,
   gl: THREE.WebGLRenderer,
