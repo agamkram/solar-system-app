@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
+import { isMobileDevice } from "./device-profile";
 import { orbitRadiusScene } from "./scale";
 
 const DEG = Math.PI / 180;
@@ -17,16 +18,19 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
-/** Keep chord length short enough that ellipses look smooth on phone screens. */
+/** Sample count for closed orbit loops — light geometry, smooth curves. */
 export function orbitLoopSegments(
   semiMajor: number,
   eccentricity = 0,
 ): number {
+  const mobile = isMobileDevice();
   const perimeter =
     TAU * semiMajor * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const maxChord = 0.006;
+  const maxChord = mobile ? 0.012 : 0.004;
   const byChord = Math.ceil(perimeter / maxChord);
-  return Math.min(2048, Math.max(768, byChord));
+  const minSeg = mobile ? 192 : 384;
+  const maxSeg = mobile ? 768 : 4096;
+  return Math.min(maxSeg, Math.max(minSeg, byChord));
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {
@@ -234,10 +238,6 @@ export function createOrbitCurve(
     return new KeplerOrbitCurve(majorAxis, body);
   }
   return new CircularOrbitCurve(majorAxis);
-}
-
-export function orbitTubeTubularSegments(): number {
-  return 8192;
 }
 
 export function buildOrbitLoopPoints(

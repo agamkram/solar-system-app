@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import * as THREE from "three";
+import { useMemo } from "react";
+import { Line } from "@react-three/drei";
 
 import type { BodyDefinition } from "@/lib/bodies";
-import { createOrbitCurve, orbitTubeTubularSegments } from "@/lib/orbits";
+import { buildOrbitLoopPoints } from "@/lib/orbits";
 import { orbitRadiusScene } from "@/lib/scale";
 
 interface OrbitRingProps {
@@ -15,9 +15,10 @@ interface OrbitRingProps {
   lineWidth?: number;
 }
 
-function orbitTubeRadius(majorAxis: number, lineWidth = 0.6): number {
-  const scale = 0.00042 * (lineWidth / 0.6);
-  return Math.max(0.0009, majorAxis * scale);
+/** World-space line thickness — scales gently with orbit size. */
+function orbitWorldLineWidth(majorAxis: number, lineWidth = 0.6): number {
+  const scale = 0.00084 * (lineWidth / 0.6);
+  return Math.max(0.0016, majorAxis * scale);
 }
 
 export function OrbitRing({
@@ -29,32 +30,26 @@ export function OrbitRing({
 }: OrbitRingProps) {
   const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
 
-  const geometry = useMemo(() => {
-    const curve = createOrbitCurve(body, semiMajor);
-    return new THREE.TubeGeometry(
-      curve,
-      orbitTubeTubularSegments(),
-      orbitTubeRadius(majorAxis, lineWidth),
-      12,
-      true,
-    );
-  }, [body, semiMajor, majorAxis, lineWidth]);
+  const points = useMemo(
+    () => buildOrbitLoopPoints(body, semiMajor),
+    [body, semiMajor],
+  );
 
-  useEffect(() => {
-    return () => {
-      geometry.dispose();
-    };
-  }, [geometry]);
+  const worldLineWidth = useMemo(
+    () => orbitWorldLineWidth(majorAxis, lineWidth),
+    [majorAxis, lineWidth],
+  );
 
   return (
-    <mesh geometry={geometry} frustumCulled={false} renderOrder={0}>
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
+    <Line
+      points={points}
+      color={color}
+      lineWidth={worldLineWidth}
+      worldUnits
+      transparent
+      opacity={opacity}
+      depthWrite={false}
+      frustumCulled={false}
+    />
   );
 }
