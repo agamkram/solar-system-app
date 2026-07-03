@@ -6,12 +6,14 @@ import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES, type BodyDefinition } from "@/lib/bodies";
+import { isPhoneDevice, orbitLineDivisionCap } from "@/lib/device-profile";
 import { buildOrbitLinePoints, orbitLineDivisions } from "@/lib/orbits";
 import { orbitRadiusScene } from "@/lib/scale";
 
 const WORLD = new THREE.Vector3();
 const PROJ = new THREE.Vector3();
 const ZERO = new THREE.Vector3();
+const GROUP_OFFSET = new THREE.Vector3();
 
 const LOD_INTERVAL_SEC = 0.5;
 const LOD_CHANGE_RATIO = 1.5;
@@ -89,11 +91,13 @@ export function OrbitLinesOverlay({
   const gl = useThree((state) => state.gl);
   const camera = useThree((state) => state.camera);
   const size = useThree((state) => state.size);
+  const phone = isPhoneDevice();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointsRef = useRef<Map<string, THREE.Vector3[]>>(new Map());
   const lodTimerRef = useRef(0);
   const sampleKeyRef = useRef("");
+  const buildQueueRef = useRef(0);
 
   const paths = useMemo<OrbitPathDef[]>(() => {
     const defs: OrbitPathDef[] = [];
@@ -124,25 +128,39 @@ export function OrbitLinesOverlay({
     return defs;
   }, []);
 
-  const rebuildPoints = () => {
+  const divisionsForPath = (path: OrbitPathDef) => {
+    if (phone) return orbitLineDivisionCap();
+    return orbitLineDivisions(
+      path.semiMajor,
+      camera,
+      size.height,
+      path.body.eccentricity ?? 0,
+    );
+  };
+
+  const rebuildOne = (index: number) => {
+    const path = paths[index];
+    if (!path) return;
+    const divisions = divisionsForPath(path);
+    pointsRef.current.set(
+      path.body.id,
+      buildOrbitLinePoints(path.body, path.semiMajor, divisions),
+    );
+    const parts = paths.map((p) => `${p.body.id}:${divisionsForPath(p)}`);
+    sampleKeyRef.current = parts.join("|");
+  };
+
+  const rebuildAll = () => {
     const next = new Map<string, THREE.Vector3[]>();
     const parts: string[] = [];
-
     for (const path of paths) {
-      const eccentricity = path.body.eccentricity ?? 0;
-      const divisions = orbitLineDivisions(
-        path.semiMajor,
-        camera,
-        size.height,
-        eccentricity,
-      );
+      const divisions = divisionsForPath(path);
       parts.push(`${path.body.id}:${divisions}`);
       next.set(
         path.body.id,
         buildOrbitLinePoints(path.body, path.semiMajor, divisions),
       );
     }
-
     pointsRef.current = next;
     sampleKeyRef.current = parts.join("|");
   };
@@ -160,7 +178,12 @@ export function OrbitLinesOverlay({
     parent.appendChild(canvas);
     canvasRef.current = canvas;
 
-    rebuildPoints();
+    if (phone) {
+      buildQueueRef.current = 0;
+      rebuildOne(0);
+    } else {
+      rebuildAll();
+    }
 
     return () => {
       canvas.remove();
@@ -170,35 +193,31 @@ export function OrbitLinesOverlay({
   }, [gl]);
 
   useEffect(() => {
-    rebuildPoints();
+    if (!phone) rebuildAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paths list is static
-  }, [paths, size.height]);
+  }, [paths, size.height, phone]);
 
   useFrame((_, delta) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    lodTimerRef.current += delta;
-    if (lodTimerRef.current >= LOD_INTERVAL_SEC) {
-      lodTimerRef.current = 0;
-      const parts: string[] = [];
-      for (const path of paths) {
-        const eccentricity = path.body.eccentricity ?? 0;
-        const divisions = orbitLineDivisions(
-          path.semiMajor,
-          camera,
-          size.height,
-          eccentricity,
+    if (phone && buildQueueRef.current < paths.length) {
+      rebuildOne(buildQueueRef.current);
+      buildQueueRef.current += 1;
+    }
+
+    if (!phone) {
+      lodTimerRef.current += delta;
+      if (lodTimerRef.current >= LOD_INTERVAL_SEC) {
+        lodTimerRef.current = 0;
+        const parts = paths.map(
+          (path) => `${path.body.id}:${divisionsForPath(path)}`,
         );
-        parts.push(`${path.body.id}:${divisions}`);
-      }
-      const nextKey = parts.join("|");
-      if (sampleKeyRef.current) {
         const prevParts = sampleKeyRef.current.split("|");
         let changed = prevParts.length !== parts.length;
         if (!changed) {
           for (let i = 0; i < parts.length; i++) {
-            const [idA, divA] = parts[i].split(":");
+            const [, divA] = parts[i].split(":");
             const [, divB] = prevParts[i]?.split(":") ?? [];
             if (!divB) continue;
             const ratio = Number(divA) / Number(divB);
@@ -208,11 +227,11 @@ export function OrbitLinesOverlay({
             }
           }
         }
-        if (changed) rebuildPoints();
+        if (changed) rebuildAll();
       }
     }
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = phone ? 1 : Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(size.width * dpr)) {
       canvas.width = Math.round(size.width * dpr);
       canvas.height = Math.round(size.height * dpr);
@@ -228,9 +247,11 @@ export function OrbitLinesOverlay({
 
     const states = getBodyStates(simDaysRef.current ?? 0);
     const focus = states.get(focusId);
-    const groupOffset = focus
-      ? focus.localPosition.clone().multiplyScalar(-1)
-      : ZERO;
+    if (focus) {
+      GROUP_OFFSET.copy(focus.localPosition).multiplyScalar(-1);
+    } else {
+      GROUP_OFFSET.set(0, 0, 0);
+    }
 
     for (const path of paths) {
       const points = pointsRef.current.get(path.body.id);
@@ -244,7 +265,7 @@ export function OrbitLinesOverlay({
       strokeOrbit(
         ctx,
         points,
-        groupOffset,
+        GROUP_OFFSET,
         anchor,
         camera,
         size.width,

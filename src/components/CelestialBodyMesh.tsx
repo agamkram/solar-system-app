@@ -6,7 +6,12 @@ import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { type BodyDefinition } from "@/lib/bodies";
-import { sphereSegments } from "@/lib/device-profile";
+import {
+  isPhoneDevice,
+  loadMoonTexturesOnPhone,
+  shouldLoadBodyTextureOnPhone,
+  sphereSegments,
+} from "@/lib/device-profile";
 import { bodyRadiusScene } from "@/lib/scale";
 import { rotationSpeedRadPerDay } from "@/lib/orbits";
 import { createSaturnRingGeometry } from "@/lib/saturn-ring-geometry";
@@ -15,6 +20,7 @@ import { loadTextureQueued } from "@/lib/texture-loader";
 
 export interface CelestialBodyMeshProps {
   body: BodyDefinition;
+  focusId: string;
   simDaysRef: React.RefObject<number>;
 }
 
@@ -48,7 +54,17 @@ function useBodyMotion(
   });
 }
 
-function getTexturePaths(body: BodyDefinition): string[] {
+function getTexturePaths(body: BodyDefinition, focusId: string): string[] {
+  if (!shouldLoadBodyTextureOnPhone(body.id, focusId)) {
+    return [];
+  }
+  if (
+    isPhoneDevice() &&
+    !loadMoonTexturesOnPhone() &&
+    body.kind === "moon"
+  ) {
+    return [];
+  }
   return [body.texture, body.atmosphereTexture, body.ringTexture].filter(
     Boolean,
   ) as string[];
@@ -149,7 +165,11 @@ function CelestialBodyVisual({
   const ringGeometry = useMemo(
     () =>
       body.ringTexture
-        ? createSaturnRingGeometry(ringInner, ringOuter, 128)
+        ? createSaturnRingGeometry(
+            ringInner,
+            ringOuter,
+            isPhoneDevice() ? 48 : 128,
+          )
         : null,
     [body.ringTexture, ringInner, ringOuter],
   );
@@ -249,7 +269,7 @@ function CelestialBodyVisual({
 }
 
 export function CelestialBodyMesh(props: CelestialBodyMeshProps) {
-  const texturePaths = getTexturePaths(props.body);
+  const texturePaths = getTexturePaths(props.body, props.focusId);
   const loadedTextures = useQueuedBodyTextures(texturePaths);
 
   let textureIndex = 0;

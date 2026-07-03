@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES, BODY_BY_ID, type BodyDefinition } from "@/lib/bodies";
-import { isMobileDevice } from "@/lib/device-profile";
+import { isMobileDevice, isPhoneDevice } from "@/lib/device-profile";
 
 const TRAIL_COLORS: Record<string, string> = {
   sun: "#FFC107",
@@ -26,6 +25,10 @@ const MAX_TRAIL_POINTS = isMobileDevice() ? 3_500 : 6_000;
 /** Max sim-days between recorded trail samples — keeps curves smooth at high speed. */
 const MAX_DAYS_PER_SAMPLE = 0.35;
 const MAX_SAMPLES_PER_FRAME = isMobileDevice() ? 120 : 220;
+const TRAIL_LINE_WIDTH = 1.25;
+const TRAIL_OPACITY = 0.9;
+
+const PROJ = new THREE.Vector3();
 
 interface EpicycleTrailsProps {
   focusId: string;
@@ -94,6 +97,47 @@ function appendTrailSegment(
   return true;
 }
 
+function strokeTrail(
+  ctx: CanvasRenderingContext2D,
+  points: THREE.Vector3[],
+  camera: THREE.Camera,
+  width: number,
+  height: number,
+  color: string,
+) {
+  let drawing = false;
+
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    PROJ.copy(points[i]).project(camera);
+
+    if (PROJ.z > 1) {
+      drawing = false;
+      continue;
+    }
+
+    const x = (PROJ.x * 0.5 + 0.5) * width;
+    const y = (-PROJ.y * 0.5 + 0.5) * height;
+
+    if (!drawing) {
+      ctx.moveTo(x, y);
+      drawing = true;
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+
+  if (!drawing || points.length < 2) return;
+
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = TRAIL_OPACITY;
+  ctx.lineWidth = TRAIL_LINE_WIDTH;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
 export function EpicycleTrails({
   focusId,
   simDaysRef,
@@ -101,12 +145,17 @@ export function EpicycleTrails({
   dissolve,
   traceResetKey,
 }: EpicycleTrailsProps) {
+  const gl = useThree((state) => state.gl);
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+  const phone = isPhoneDevice();
+
   const focus = BODY_BY_ID[focusId];
   const targets = useMemo(() => traceTargets(focusId), [focusId]);
 
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const trailsRef = useRef<Map<string, THREE.Vector3[]>>(new Map());
   const lastSampledDaysRef = useRef<number | null>(null);
-  const [renderTick, setRenderTick] = useState(0);
 
   const seedTrails = (days: number) => {
     if (!focus) return;
@@ -128,50 +177,79 @@ export function EpicycleTrails({
 
   useEffect(() => {
     seedTrails(simDaysRef.current ?? 0);
-    setRenderTick((t) => t + 1);
   }, [focusId, tracing, traceResetKey]);
+
+  useEffect(() => {
+    if (!tracing) return;
+
+    const parent = gl.domElement.parentElement;
+    if (!parent) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-hidden", "true");
+    canvas.className = "pointer-events-none absolute inset-0 z-[2]";
+    if (getComputedStyle(parent).position === "static") {
+      parent.style.position = "relative";
+    }
+    parent.appendChild(canvas);
+    canvasRef.current = canvas;
+
+    return () => {
+      canvas.remove();
+      canvasRef.current = null;
+    };
+  }, [gl, tracing]);
 
   useFrame(() => {
     if (!tracing || !focus) return;
 
     const days = simDaysRef.current ?? 0;
     const last = lastSampledDaysRef.current;
-    if (last === null || days === last) return;
+    if (last !== null && days !== last) {
+      appendTrailSegment(
+        trailsRef.current,
+        focusId,
+        targets,
+        last,
+        days,
+        dissolve,
+      );
+      lastSampledDaysRef.current = days;
+    }
 
-    const changed = appendTrailSegment(
-      trailsRef.current,
-      focusId,
-      targets,
-      last,
-      days,
-      dissolve,
-    );
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    lastSampledDaysRef.current = days;
-    if (changed) setRenderTick((t) => t + 1);
+    const dpr = phone ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    const bitmapW = Math.round(size.width * dpr);
+    const bitmapH = Math.round(size.height * dpr);
+    if (canvas.width !== bitmapW || canvas.height !== bitmapH) {
+      canvas.width = bitmapW;
+      canvas.height = bitmapH;
+      canvas.style.width = `${size.width}px`;
+      canvas.style.height = `${size.height}px`;
+    }
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size.width, size.height);
+
+    for (const body of targets) {
+      const points = trailsRef.current.get(body.id);
+      if (!points || points.length < 2) continue;
+
+      strokeTrail(
+        ctx,
+        points,
+        camera,
+        size.width,
+        size.height,
+        TRAIL_COLORS[body.id] ?? "#aaaaaa",
+      );
+    }
   });
 
-  if (!tracing || !focus) return null;
-
-  return (
-    <group>
-      {targets.map((body) => {
-        const points = trailsRef.current.get(body.id);
-        if (!points || points.length < 2) return null;
-
-        return (
-          <Line
-            key={`epicycle-${body.id}-${renderTick}`}
-            points={points}
-            color={TRAIL_COLORS[body.id] ?? "#aaaaaa"}
-            lineWidth={0.75}
-            transparent
-            opacity={0.9}
-            depthWrite={false}
-            frustumCulled={false}
-          />
-        );
-      })}
-    </group>
-  );
+  return null;
 }
