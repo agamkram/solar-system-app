@@ -46,7 +46,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <meta name="app-layout" content="v7" />
+        <meta name="app-layout" content="v8" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="preload" href="/textures/earth.jpg" as="image" />
         <link rel="preload" href="/textures/sun.jpg" as="image" />

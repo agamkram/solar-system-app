@@ -57,7 +57,8 @@ export function applyPhoneLayoutDOM(
   dock.style.zIndex = "20";
   dock.style.paddingLeft = "calc(0.75rem + env(safe-area-inset-left, 0px))";
   dock.style.paddingRight = "calc(0.75rem + env(safe-area-inset-right, 0px))";
-  dock.style.paddingBottom = `max(0.5rem, ${safeBottom}px)`;
+  const dockPad = Math.max(4, safeBottom - 6);
+  dock.style.paddingBottom = `${dockPad}px`;
   dock.style.margin = "0";
 
   window.dispatchEvent(new Event("resize"));
