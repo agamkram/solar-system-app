@@ -197,12 +197,9 @@ export function OrbitLinesOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paths list is static
   }, [paths, size.height, phone]);
 
-  // Draw after OrbitControls (priority 0) so projected lines match the rendered frame.
   useFrame((_, delta) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    camera.updateMatrixWorld();
 
     if (phone && buildQueueRef.current < paths.length) {
       rebuildOne(buildQueueRef.current);
@@ -277,7 +274,7 @@ export function OrbitLinesOverlay({
         path.lineWidth,
       );
     }
-  }, 1);
+  });
 
   return null;
 }

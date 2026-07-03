@@ -49,17 +49,17 @@ function SceneContent({
       />
       <TextureWarmup />
       <SkyBackground />
+      <CameraRig
+        focusId={focusId}
+        simDays={simDays}
+        simDaysRef={simDaysRef}
+      />
       <SolarSystemBodies
         simDaysRef={simDaysRef}
         focusId={focusId}
         epicycleTracing={epicycleTracing}
         trailDissolve={trailDissolve}
         traceResetKey={traceResetKey}
-      />
-      <CameraRig
-        focusId={focusId}
-        simDays={simDays}
-        simDaysRef={simDaysRef}
       />
     </>
   );
