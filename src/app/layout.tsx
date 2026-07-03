@@ -22,6 +22,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Solar System",
   },
+  icons: {
+    icon: "/apple-touch-icon.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,6 +46,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="preload" href="/textures/earth.jpg" as="image" />
         <link rel="preload" href="/textures/sun.jpg" as="image" />
       </head>
