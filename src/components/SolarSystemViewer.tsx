@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
+import {
+  applyPhoneLayoutDOM,
+  clearPhoneLayoutDOM,
+} from "@/lib/phone-layout-dom";
 import { speedIndexToDaysPerSecond } from "@/lib/playback";
 import { SolarSystemScene } from "./SolarSystemScene";
 import { TimeControls } from "./TimeControls";
@@ -17,6 +21,9 @@ export function SolarSystemViewer() {
 
   const simDaysRef = useRef(0);
   const speedDaysPerSecondRef = useRef(speedIndexToDaysPerSecond(speedIndex));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   speedDaysPerSecondRef.current = speedIndexToDaysPerSecond(speedIndex);
 
@@ -31,63 +38,42 @@ export function SolarSystemViewer() {
     setEpicycleTracing((on) => !on);
   }, [epicycleTracing]);
 
-  useEffect(() => {
+  const syncLayout = useCallback(() => {
     const mqPhone = window.matchMedia("(max-width: 767px)");
-
-    const isStandalone = () =>
+    const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator &&
         (navigator as Navigator & { standalone?: boolean }).standalone);
+    const phone = mqPhone.matches;
+    const phoneBrowser = phone && !standalone;
+    const vv = window.visualViewport;
+    const browserChromeBottom =
+      phoneBrowser && vv
+        ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+        : 0;
 
-    const syncLayout = () => {
-      const standalone = isStandalone();
-      const phone = mqPhone.matches;
-      const phoneBrowser = phone && !standalone;
-      const vv = window.visualViewport;
+    document.documentElement.classList.toggle("pwa-standalone", standalone);
+    document.documentElement.classList.toggle("pwa-phone", standalone && phone);
+    document.documentElement.classList.toggle("phone-browser", phoneBrowser);
 
-      document.documentElement.classList.toggle("pwa-standalone", standalone);
-      document.documentElement.classList.toggle("pwa-phone", standalone && phone);
-      document.documentElement.classList.toggle("phone-browser", phoneBrowser);
+    const root = rootRef.current;
+    const scene = sceneRef.current;
+    const dock = dockRef.current;
 
-      document.documentElement.style.setProperty(
-        "--screen-h",
-        `${window.innerHeight}px`,
-      );
+    if (phone && root && dock) {
+      applyPhoneLayoutDOM(root, scene, dock, browserChromeBottom);
+    } else if (root && dock) {
+      clearPhoneLayoutDOM(root, scene, dock);
+    }
+  }, []);
 
-      const probe = document.createElement("div");
-      probe.style.cssText =
-        "padding-bottom:env(safe-area-inset-bottom,0px)";
-      document.documentElement.appendChild(probe);
-      const safeBottom =
-        parseFloat(getComputedStyle(probe).paddingBottom) || 0;
-      probe.remove();
-      document.documentElement.style.setProperty(
-        "--safe-bottom",
-        `${safeBottom}px`,
-      );
-
-      if (phoneBrowser && vv) {
-        document.documentElement.style.setProperty(
-          "--app-height",
-          `${vv.height}px`,
-        );
-        document.documentElement.style.setProperty(
-          "--browser-chrome-bottom",
-          `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`,
-        );
-      } else {
-        document.documentElement.style.setProperty(
-          "--app-height",
-          `${window.innerHeight}px`,
-        );
-        document.documentElement.style.setProperty(
-          "--browser-chrome-bottom",
-          "0px",
-        );
-      }
-    };
-
+  useLayoutEffect(() => {
     syncLayout();
+  }, [syncLayout]);
+
+  useEffect(() => {
+    const mqPhone = window.matchMedia("(max-width: 767px)");
+
     window.addEventListener("resize", syncLayout);
     mqPhone.addEventListener("change", syncLayout);
     window.visualViewport?.addEventListener("resize", syncLayout);
@@ -99,7 +85,7 @@ export function SolarSystemViewer() {
       window.visualViewport?.removeEventListener("resize", syncLayout);
       window.visualViewport?.removeEventListener("scroll", syncLayout);
     };
-  }, []);
+  }, [syncLayout]);
 
   const handleNow = useCallback(() => {
     simDaysRef.current = 0;
@@ -108,8 +94,9 @@ export function SolarSystemViewer() {
   }, []);
 
   return (
-    <div className="viewer-root relative w-full bg-[#02040a]">
+    <div ref={rootRef} className="viewer-root relative w-full bg-[#02040a]">
       <SolarSystemScene
+        sceneRef={sceneRef}
         focusId={focusId}
         simDays={simDays}
         epicycleTracing={epicycleTracing}
@@ -155,28 +142,31 @@ export function SolarSystemViewer() {
             </button>
           </div>
         </header>
+      </div>
 
-        <div className="viewer-orb-dock pointer-events-auto flex w-full justify-start">
-          <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
-            <div className="orb-picker">
-              {PICKER_BODIES.map((body) => {
-                const active = focusId === body.id;
-                return (
-                  <button
-                    key={body.id}
-                    type="button"
-                    onClick={() => handleFocus(body.id)}
-                    className={`orb-btn rounded-full font-medium transition ${
-                      active
-                        ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
-                        : "bg-white/5 text-white/75 hover:bg-white/10"
-                    }`}
-                  >
-                    {body.name}
-                  </button>
-                );
-              })}
-            </div>
+      <div
+        ref={dockRef}
+        className="viewer-orb-dock pointer-events-auto flex w-full justify-start"
+      >
+        <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
+          <div className="orb-picker">
+            {PICKER_BODIES.map((body) => {
+              const active = focusId === body.id;
+              return (
+                <button
+                  key={body.id}
+                  type="button"
+                  onClick={() => handleFocus(body.id)}
+                  className={`orb-btn rounded-full font-medium transition ${
+                    active
+                      ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
+                  }`}
+                >
+                  {body.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
