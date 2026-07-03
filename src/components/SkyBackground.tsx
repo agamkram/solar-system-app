@@ -18,7 +18,7 @@ import {
 
 function skyAssetUrl(): string {
   if (isPhoneDevice()) return "/stars-2k.jpg";
-  if (isIpadDevice()) return "/stars-8k.jpg";
+  if (isIpadDevice()) return "/stars-4k.jpg";
   return "/stars-8k.jpg";
 }
 
@@ -74,7 +74,7 @@ export function SkyBackground() {
       }
     };
 
-    const delay = isPhoneDevice() ? 900 : 0;
+    const delay = isPhoneDevice() ? 900 : isIpadDevice() ? 500 : 0;
     const timer = window.setTimeout(() => {
       void applySky();
     }, delay);
