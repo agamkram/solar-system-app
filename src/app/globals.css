@@ -75,6 +75,21 @@ body {
   }
 }
 
+/* Desktop: tighter speed card to match planet card */
+@media (pointer: fine) {
+  .time-controls-card {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .time-controls-card .time-controls-speed {
+    margin-top: 0.25rem;
+  }
+
+  .time-controls-card .time-controls-speed-labels {
+    margin-bottom: 0.125rem;
+  }
+}
+
 /* iPad: speed card +10% width, -10% height */
 @media (pointer: coarse) and (min-width: 768px) {
   .time-controls-card {
