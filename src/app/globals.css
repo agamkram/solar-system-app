@@ -44,3 +44,24 @@ body {
   border: 1px solid rgb(125 211 252 / 0.7);
   background: rgb(56 189 248);
 }
+
+/* iPad / tablet: 11 orbs in 2 tight rows (6 + 5) */
+@media (pointer: coarse) and (min-width: 768px) {
+  .orb-picker-panel {
+    max-width: min(100%, 26.5rem);
+    padding: 0.35rem;
+  }
+
+  .orb-picker {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .orb-picker .orb-btn {
+    width: 100%;
+    padding: 0.3rem 0.25rem;
+    font-size: 0.65rem;
+    line-height: 1.1;
+  }
+}

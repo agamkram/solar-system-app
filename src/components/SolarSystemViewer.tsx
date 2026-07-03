@@ -88,8 +88,8 @@ export function SolarSystemViewer() {
         </header>
 
         <div className="pointer-events-auto flex justify-start">
-          <div className="max-w-[min(100%,20rem)] rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-md sm:max-w-[22rem]">
-            <div className="flex flex-wrap gap-1.5">
+          <div className="orb-picker-panel max-w-[min(100%,20rem)] rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-md sm:max-w-[22rem]">
+            <div className="orb-picker flex flex-wrap gap-1.5">
               {PICKER_BODIES.map((body) => {
                 const active = focusId === body.id;
                 return (
@@ -97,7 +97,7 @@ export function SolarSystemViewer() {
                     key={body.id}
                     type="button"
                     onClick={() => handleFocus(body.id)}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    className={`orb-btn shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                       active
                         ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
                         : "bg-white/5 text-white/75 hover:bg-white/10"
