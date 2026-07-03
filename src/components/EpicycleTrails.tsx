@@ -7,6 +7,7 @@ import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES, BODY_BY_ID, type BodyDefinition } from "@/lib/bodies";
+import { isMobileDevice } from "@/lib/device-profile";
 
 const TRAIL_COLORS: Record<string, string> = {
   sun: "#FFC107",
@@ -21,10 +22,10 @@ const TRAIL_COLORS: Record<string, string> = {
   pluto: "#EC407A",
 };
 
-const MAX_TRAIL_POINTS = 6_000;
+const MAX_TRAIL_POINTS = isMobileDevice() ? 3_500 : 6_000;
 /** Max sim-days between recorded trail samples — keeps curves smooth at high speed. */
 const MAX_DAYS_PER_SAMPLE = 0.35;
-const MAX_SAMPLES_PER_FRAME = 220;
+const MAX_SAMPLES_PER_FRAME = isMobileDevice() ? 120 : 220;
 
 interface EpicycleTrailsProps {
   focusId: string;

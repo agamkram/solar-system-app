@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 
+import { canvasDpr, isMobileDevice } from "@/lib/device-profile";
 import { focusCameraState } from "@/lib/focus-camera";
 import { godsViewDistance } from "@/lib/scale";
 import { CameraRig } from "./CameraRig";
@@ -87,9 +88,17 @@ export function SolarSystemScene({
           near: 0.01,
           far,
         }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        dpr={canvasDpr()}
+        gl={{
+          antialias: !isMobileDevice(),
+          powerPreference: isMobileDevice() ? "default" : "high-performance",
+        }}
         style={{ touchAction: "none" }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener("webglcontextlost", (event) => {
+            event.preventDefault();
+          });
+        }}
       >
         <SceneContent focusId={focusId} simDays={simDays} {...props} />
       </Canvas>

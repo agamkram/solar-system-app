@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES } from "@/lib/bodies";
 import { orbitRadiusScene } from "@/lib/scale";
-import { BodyPlaceholder, CelestialBodyMesh } from "./CelestialBodyMesh";
+import { CelestialBodyMesh } from "./CelestialBodyMesh";
 import { EpicycleTrails } from "./EpicycleTrails";
 import { OrbitRing } from "./OrbitRing";
 
@@ -106,12 +106,11 @@ export function SolarSystemBodies({
         })}
 
         {BODIES.map((body) => (
-          <Suspense
+          <CelestialBodyMesh
             key={body.id}
-            fallback={<BodyPlaceholder body={body} simDaysRef={simDaysRef} />}
-          >
-            <CelestialBodyMesh body={body} simDaysRef={simDaysRef} />
-          </Suspense>
+            body={body}
+            simDaysRef={simDaysRef}
+          />
         ))}
       </group>
 

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
+import { fitTextureToGpuLimit } from "@/lib/gpu-texture";
+
 export function SkyBackground() {
   const { gl, scene } = useThree();
 
@@ -16,12 +18,18 @@ export function SkyBackground() {
         texture.dispose();
         return;
       }
+
+      fitTextureToGpuLimit(texture, gl.capabilities.maxTextureSize);
+
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
       texture.generateMipmaps = false;
-      texture.anisotropy = gl.capabilities.getMaxAnisotropy();
+      texture.anisotropy = Math.min(
+        4,
+        gl.capabilities.getMaxAnisotropy(),
+      );
       texture.needsUpdate = true;
       scene.background = texture;
     });

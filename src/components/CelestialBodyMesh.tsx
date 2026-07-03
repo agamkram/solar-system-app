@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { type BodyDefinition } from "@/lib/bodies";
+import { sphereSegments } from "@/lib/device-profile";
 import { bodyRadiusScene } from "@/lib/scale";
 import { rotationSpeedRadPerDay } from "@/lib/orbits";
 import { createSaturnRingGeometry } from "@/lib/saturn-ring-geometry";
 import { configureColorMap } from "@/lib/texture-config";
+import { loadTextureQueued } from "@/lib/texture-loader";
 
 export interface CelestialBodyMeshProps {
   body: BodyDefinition;
@@ -30,12 +31,6 @@ const PLACEHOLDER_COLORS: Record<string, string> = {
   neptune: "#4a6eb8",
   pluto: "#c9a882",
 };
-
-function sphereDetail(body: BodyDefinition): number {
-  if (body.id === "earth") return 96;
-  if (body.kind === "star") return 64;
-  return 72;
-}
 
 function useBodyMotion(
   groupRef: React.RefObject<THREE.Group | null>,
@@ -59,14 +54,38 @@ function getTexturePaths(body: BodyDefinition): string[] {
   ) as string[];
 }
 
-function splitMaps(body: BodyDefinition, mapArray: THREE.Texture[]) {
-  let textureIndex = 0;
-  const map = body.texture ? mapArray[textureIndex++] : null;
-  const atmosphereMap = body.atmosphereTexture
-    ? mapArray[textureIndex++]
-    : null;
-  const ringMap = body.ringTexture ? mapArray[textureIndex++] : null;
-  return { map, atmosphereMap, ringMap };
+function useQueuedBodyTextures(paths: string[]): (THREE.Texture | null)[] {
+  const { gl } = useThree();
+  const [textures, setTextures] = useState<(THREE.Texture | null)[]>(() =>
+    paths.map(() => null),
+  );
+
+  useEffect(() => {
+    if (paths.length === 0) return;
+
+    let active = true;
+    paths.forEach((path, index) => {
+      loadTextureQueued(path, gl)
+        .then((texture) => {
+          if (!active) return;
+          setTextures((current) => {
+            if (current[index] === texture) return current;
+            const next = [...current];
+            next[index] = texture;
+            return next;
+          });
+        })
+        .catch(() => {
+          /* keep placeholder on failure */
+        });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [paths.join("|"), gl]);
+
+  return textures;
 }
 
 interface BodyMeshVisualProps extends CelestialBodyMeshProps {
@@ -80,6 +99,7 @@ function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
   const radius = bodyRadiusScene(body.radiusKm);
   const spinSpeed = rotationSpeedRadPerDay(body.rotationPeriodHours);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
+  const segments = sphereSegments(body.id, body.kind);
   const color = body.color ?? PLACEHOLDER_COLORS[body.id] ?? "#888888";
 
   useBodyMotion(groupRef, body.id, simDaysRef, spinSpeed);
@@ -89,7 +109,7 @@ function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
       <group ref={groupRef}>
         <pointLight intensity={2.4} distance={0} decay={0} color="#fff4e8" />
         <mesh rotation={[tiltRad, 0, 0]}>
-          <sphereGeometry args={[radius, 48, 48]} />
+          <sphereGeometry args={[radius, segments, segments]} />
           <meshBasicMaterial color={color} toneMapped={false} />
         </mesh>
       </group>
@@ -100,7 +120,7 @@ function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
     <group ref={groupRef}>
       <group rotation={[tiltRad, 0, 0]}>
         <mesh>
-          <sphereGeometry args={[radius, 48, 48]} />
+          <sphereGeometry args={[radius, segments, segments]} />
           <meshBasicMaterial color={color} />
         </mesh>
       </group>
@@ -120,7 +140,7 @@ function CelestialBodyVisual({
   const radius = bodyRadiusScene(body.radiusKm);
   const spinSpeed = rotationSpeedRadPerDay(body.rotationPeriodHours);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
-  const segments = sphereDetail(body);
+  const segments = sphereSegments(body.id, body.kind);
   const placeholderColor =
     body.color ?? PLACEHOLDER_COLORS[body.id] ?? "#888888";
 
@@ -230,11 +250,23 @@ function CelestialBodyVisual({
 
 export function CelestialBodyMesh(props: CelestialBodyMeshProps) {
   const texturePaths = getTexturePaths(props.body);
-  const maps = useTexture(
-    texturePaths.length > 0 ? texturePaths : ["/textures/mercury.jpg"],
-  );
-  const mapArray = Array.isArray(maps) ? maps : [maps];
-  const { map, atmosphereMap, ringMap } = splitMaps(props.body, mapArray);
+  const loadedTextures = useQueuedBodyTextures(texturePaths);
+
+  let textureIndex = 0;
+  const map = props.body.texture ? loadedTextures[textureIndex++] : null;
+  const atmosphereMap = props.body.atmosphereTexture
+    ? loadedTextures[textureIndex++]
+    : null;
+  const ringMap = props.body.ringTexture ? loadedTextures[textureIndex++] : null;
+
+  const texturesReady =
+    texturePaths.length === 0 ||
+    (loadedTextures.length === texturePaths.length &&
+      loadedTextures.every((texture) => texture !== null));
+
+  if (!texturesReady) {
+    return <BodyPlaceholderMesh {...props} />;
+  }
 
   return (
     <CelestialBodyVisual
