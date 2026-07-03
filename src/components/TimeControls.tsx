@@ -44,7 +44,7 @@ export function TimeControls({
           step={1}
           value={speedIndex}
           onChange={(event) => onSpeedIndexChange(Number(event.target.value))}
-          className="time-speed-slider h-0.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-sky-400"
+          className="time-speed-slider time-controls-slider h-0.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-sky-400"
           aria-label="Simulation speed"
         />
       </div>
