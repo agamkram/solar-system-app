@@ -17,8 +17,16 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
-export function orbitLoopSegments(semiMajor: number): number {
-  return Math.min(1024, Math.max(512, Math.round(semiMajor * 14)));
+/** Keep chord length short enough that ellipses look smooth on phone screens. */
+export function orbitLoopSegments(
+  semiMajor: number,
+  eccentricity = 0,
+): number {
+  const perimeter =
+    TAU * semiMajor * Math.sqrt((1 + eccentricity * eccentricity) / 2);
+  const maxChord = 0.006;
+  const byChord = Math.ceil(perimeter / maxChord);
+  return Math.min(2048, Math.max(768, byChord));
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {
@@ -174,7 +182,9 @@ export function buildOrbitLoopPoints(
   segments?: number,
 ): THREE.Vector3[] {
   const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
-  const pointCount = segments ?? orbitLoopSegments(majorAxis);
+  const eccentricity = body.eccentricity ?? 0;
+  const pointCount =
+    segments ?? orbitLoopSegments(majorAxis, eccentricity);
 
   if (!hasKeplerianOrbit(body)) {
     const points: THREE.Vector3[] = [];
@@ -191,14 +201,15 @@ export function buildOrbitLoopPoints(
     return points;
   }
 
-  const eccentricity = body.eccentricity ?? 0;
   const inclination = (body.orbitInclinationDeg ?? 0) * DEG;
   const ascendingNode = (body.longitudeOfAscendingNodeDeg ?? 0) * DEG;
   const argumentOfPerihelion = (body.argumentOfPerihelionDeg ?? 0) * DEG;
 
   const points: THREE.Vector3[] = [];
   for (let i = 0; i <= pointCount; i++) {
-    const nu = (i / pointCount) * TAU;
+    const meanAnomaly = (i / pointCount) * TAU;
+    const eccentricAnomaly = solveKepler(meanAnomaly, eccentricity);
+    const nu = trueAnomaly(eccentricAnomaly, eccentricity);
     points.push(
       positionFromTrueAnomaly(
         nu,
