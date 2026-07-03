@@ -1,0 +1,10 @@
+{
+  "name": "Solar System",
+  "short_name": "Solar System",
+  "description": "Interactive 3D solar system with God's view, orbits, and Pluto.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#02040a",
+  "theme_color": "#02040a",
+  "orientation": "any"
+}
