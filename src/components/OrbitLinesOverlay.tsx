@@ -197,9 +197,12 @@ export function OrbitLinesOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paths list is static
   }, [paths, size.height, phone]);
 
+  // Mount last in scene + updateMatrixWorld so projection matches the rendered frame.
   useFrame((_, delta) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    camera.updateMatrixWorld();
 
     if (phone && buildQueueRef.current < paths.length) {
       rebuildOne(buildQueueRef.current);

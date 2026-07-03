@@ -8,7 +8,6 @@ import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES } from "@/lib/bodies";
 import { CelestialBodyMesh } from "./CelestialBodyMesh";
 import { EpicycleTrails } from "./EpicycleTrails";
-import { OrbitLinesOverlay } from "./OrbitLinesOverlay";
 
 interface SolarSystemBodiesProps {
   simDaysRef: React.RefObject<number>;
@@ -36,8 +35,6 @@ export function SolarSystemBodies({
 
   return (
     <>
-      <OrbitLinesOverlay focusId={focusId} simDaysRef={simDaysRef} />
-
       <group ref={systemRef}>
         {BODIES.map((body) => (
           <CelestialBodyMesh

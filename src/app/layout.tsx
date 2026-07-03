@@ -50,7 +50,7 @@ export default function RootLayout({
         <link rel="preload" href="/textures/earth.jpg" as="image" />
         <link rel="preload" href="/textures/sun.jpg" as="image" />
       </head>
-      <body className="h-dvh max-h-dvh overflow-hidden bg-[#02040a] font-sans text-white">
+      <body className="h-full min-h-dvh overflow-hidden bg-[#02040a] font-sans text-white">
         {children}
       </body>
     </html>

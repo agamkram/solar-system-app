@@ -7,6 +7,7 @@ import { canvasDpr, isMobileDevice } from "@/lib/device-profile";
 import { focusCameraState } from "@/lib/focus-camera";
 import { godsViewDistance } from "@/lib/scale";
 import { CameraRig } from "./CameraRig";
+import { OrbitLinesOverlay } from "./OrbitLinesOverlay";
 import { SceneClock } from "./SceneClock";
 import { SolarSystemBodies } from "./SolarSystemBodies";
 import { SkyBackground } from "./SkyBackground";
@@ -61,6 +62,7 @@ function SceneContent({
         trailDissolve={trailDissolve}
         traceResetKey={traceResetKey}
       />
+      <OrbitLinesOverlay focusId={focusId} simDaysRef={simDaysRef} />
     </>
   );
 }

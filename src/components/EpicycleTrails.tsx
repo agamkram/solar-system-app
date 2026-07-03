@@ -203,6 +203,8 @@ export function EpicycleTrails({
   useFrame(() => {
     if (!tracing || !focus) return;
 
+    camera.updateMatrixWorld();
+
     const days = simDaysRef.current ?? 0;
     const last = lastSampledDaysRef.current;
     if (last !== null && days !== last) {
