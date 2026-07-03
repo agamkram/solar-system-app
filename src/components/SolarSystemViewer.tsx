@@ -16,9 +16,8 @@ export function SolarSystemViewer() {
   const [traceResetKey, setTraceResetKey] = useState(0);
 
   const simDaysRef = useRef(0);
-  const speedDaysPerSecondRef = useRef<number>(0);
+  const speedDaysPerSecondRef = useRef(speedIndexToDaysPerSecond(speedIndex));
 
-  simDaysRef.current = simDays;
   speedDaysPerSecondRef.current = speedIndexToDaysPerSecond(speedIndex);
 
   const handleFocus = useCallback((id: string) => {
