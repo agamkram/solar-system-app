@@ -18,7 +18,7 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
-/** Sample count for closed orbit loops — light geometry, smooth curves. */
+/** Points along a closed orbit — LineLoop is cheap, so sample generously. */
 export function orbitLoopSegments(
   semiMajor: number,
   eccentricity = 0,
@@ -26,10 +26,10 @@ export function orbitLoopSegments(
   const mobile = isMobileDevice();
   const perimeter =
     TAU * semiMajor * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const maxChord = mobile ? 0.012 : 0.004;
+  const maxChord = mobile ? 0.008 : 0.0025;
   const byChord = Math.ceil(perimeter / maxChord);
-  const minSeg = mobile ? 192 : 384;
-  const maxSeg = mobile ? 768 : 4096;
+  const minSeg = mobile ? 256 : 512;
+  const maxSeg = mobile ? 1536 : 6144;
   return Math.min(maxSeg, Math.max(minSeg, byChord));
 }
 
