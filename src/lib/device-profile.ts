@@ -7,13 +7,19 @@ export function isMobileDevice(): boolean {
   );
 }
 
-export function isPhoneDevice(): boolean {
+export function isIpadDevice(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent;
-  const ipad =
+  return (
     /iPad/i.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (ipad) return false;
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+export function isPhoneDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isIpadDevice()) return false;
+  const ua = navigator.userAgent;
   return (
     window.matchMedia("(pointer: coarse)").matches ||
     /iPhone|iPod|Android/i.test(ua)
@@ -45,7 +51,7 @@ export function maxTextureUploadSize(): number {
 
 export function skyTextureUploadSize(): number {
   if (isPhoneDevice()) return 2048;
-  if (isMobileDevice()) return 4096;
+  if (isIpadDevice()) return 8192;
   return 8192;
 }
 

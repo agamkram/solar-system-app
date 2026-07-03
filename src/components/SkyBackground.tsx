@@ -4,7 +4,12 @@ import { useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-import { isMobileDevice, isPhoneDevice, skyTextureUploadSize } from "@/lib/device-profile";
+import {
+  isIpadDevice,
+  isMobileDevice,
+  isPhoneDevice,
+  skyTextureUploadSize,
+} from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
   loadImageResized,
@@ -13,7 +18,7 @@ import {
 
 function skyAssetUrl(): string {
   if (isPhoneDevice()) return "/stars-2k.jpg";
-  if (isMobileDevice()) return "/stars-4k.jpg";
+  if (isIpadDevice()) return "/stars-8k.jpg";
   return "/stars-8k.jpg";
 }
 
