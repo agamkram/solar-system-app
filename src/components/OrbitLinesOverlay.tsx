@@ -15,8 +15,8 @@ const ZERO = new THREE.Vector3();
 
 const LOD_INTERVAL_SEC = 0.5;
 const LOD_CHANGE_RATIO = 1.5;
-const PLANET_LINE_WIDTH = 0.5;
-const MOON_LINE_WIDTH = 0.4;
+const PLANET_LINE_WIDTH = 1;
+const MOON_LINE_WIDTH = 1;
 
 interface OrbitPathDef {
   body: BodyDefinition;
