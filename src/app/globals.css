@@ -74,3 +74,19 @@ body {
     max-width: 100%;
   }
 }
+
+/* iPad: speed card +10% width, -10% height */
+@media (pointer: coarse) and (min-width: 768px) {
+  .time-controls-card {
+    width: 9.625rem;
+    padding: 0.34rem 0.55rem;
+  }
+
+  .time-controls-card .time-controls-speed {
+    margin-top: 0.34rem;
+  }
+
+  .time-controls-card .time-controls-speed-labels {
+    margin-bottom: 0.11rem;
+  }
+}

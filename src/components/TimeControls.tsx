@@ -16,7 +16,7 @@ export function TimeControls({
   onNow,
 }: TimeControlsProps) {
   return (
-    <div className="pointer-events-auto w-[8.25rem] rounded-lg border border-white/10 bg-black/50 px-2 py-1.5 backdrop-blur-md sm:w-[8.75rem]">
+    <div className="time-controls-card pointer-events-auto w-[8.25rem] rounded-lg border border-white/10 bg-black/50 px-2 py-1.5 backdrop-blur-md sm:w-[8.75rem]">
       <div className="flex items-center justify-between gap-1.5">
         <p className="truncate text-[9px] font-medium tabular-nums text-white/90">
           {formatSimDate(simDays)}
@@ -30,8 +30,8 @@ export function TimeControls({
         </button>
       </div>
 
-      <div className="mt-1.5">
-        <div className="mb-0.5 flex items-center justify-between gap-1">
+      <div className="time-controls-speed mt-1.5">
+        <div className="time-controls-speed-labels mb-0.5 flex items-center justify-between gap-1">
           <span className="text-[8px] text-white/40">Speed</span>
           <span className="w-[3.75rem] shrink-0 truncate text-right text-[8px] tabular-nums text-sky-200/80">
             {speedLabel(speedIndex)}
