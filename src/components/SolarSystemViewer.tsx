@@ -49,6 +49,18 @@ export function SolarSystemViewer() {
       document.documentElement.classList.toggle("pwa-phone", standalone && phone);
       document.documentElement.classList.toggle("phone-browser", phoneBrowser);
 
+      const probe = document.createElement("div");
+      probe.style.cssText =
+        "padding-bottom:env(safe-area-inset-bottom,0px)";
+      document.documentElement.appendChild(probe);
+      let safeBottom = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+      probe.remove();
+      if (safeBottom < 20) safeBottom = 34;
+      document.documentElement.style.setProperty(
+        "--safe-bottom",
+        `${safeBottom}px`,
+      );
+
       if (phoneBrowser && vv) {
         document.documentElement.style.setProperty(
           "--app-height",

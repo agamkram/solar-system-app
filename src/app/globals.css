@@ -141,11 +141,11 @@ html.pwa-standalone .viewer-root {
   }
 }
 
-/* Phone: bleed background under home indicator */
+/* Phone: full-bleed background + picker fixed above home indicator */
 @media (pointer: coarse) and (max-width: 767px) {
   html,
   body {
-    min-height: var(--app-height, 100vh);
+    min-height: 100vh;
     min-height: -webkit-fill-available;
     background: #02040a;
   }
@@ -153,61 +153,34 @@ html.pwa-standalone .viewer-root {
   .viewer-root {
     height: 100vh;
     height: -webkit-fill-available;
+    min-height: 100vh;
     overflow-x: hidden;
     overflow-y: visible;
   }
 
   .viewer-scene {
-    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    bottom: calc(-1 * var(--safe-bottom, 34px));
   }
 
   .viewer-ui-overlay {
     z-index: 2;
   }
+
+  .viewer-orb-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--safe-bottom, 34px);
+    z-index: 10;
+    padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+    padding-bottom: 0.35rem;
+  }
 }
 
-/* Phone home screen: 100vh fills under home indicator (dvh leaves a gap) */
-html.pwa-standalone.pwa-phone,
-html.pwa-standalone.pwa-phone body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-}
-
-html.pwa-standalone.pwa-phone .viewer-root {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  height: 100vh;
-  height: -webkit-fill-available;
-  overflow-x: hidden;
-  overflow-y: visible;
-}
-
-html.pwa-standalone.pwa-phone .viewer-scene {
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-}
-
-html.pwa-standalone.pwa-phone .viewer-ui-overlay {
-  padding-bottom: 0;
-}
-
-html.pwa-standalone.pwa-phone .viewer-orb-dock {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
-  z-index: 10;
-  padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
-  padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-  padding-bottom: 0.35rem;
-}
-
-html.pwa-standalone.pwa-phone body {
-  overflow: visible;
-}
-
-/* Phone Safari: lift picker above toolbar, canvas stays full screen */
+/* Phone Safari browser: also clear bottom toolbar */
 html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
-  bottom: var(--browser-chrome-bottom, 0px);
+  bottom: calc(var(--browser-chrome-bottom, 0px) + var(--safe-bottom, 34px));
 }
 
 /* Desktop: planet picker at bottom */
