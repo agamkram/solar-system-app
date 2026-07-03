@@ -4,46 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
 import { speedIndexToDaysPerSecond } from "@/lib/playback";
-import {
-  applyPhoneLayout,
-  clearPhoneLayout,
-} from "@/lib/phone-layout";
 import { SolarSystemScene } from "./SolarSystemScene";
 import { TimeControls } from "./TimeControls";
-
-function OrbPickerDock({
-  focusId,
-  onFocus,
-}: {
-  focusId: string;
-  onFocus: (id: string) => void;
-}) {
-  return (
-    <div className="viewer-orb-dock pointer-events-auto flex w-full justify-start">
-      <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
-        <div className="orb-picker">
-          {PICKER_BODIES.map((body) => {
-            const active = focusId === body.id;
-            return (
-              <button
-                key={body.id}
-                type="button"
-                onClick={() => onFocus(body.id)}
-                className={`orb-btn rounded-full font-medium transition ${
-                  active
-                    ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
-                    : "bg-white/5 text-white/75 hover:bg-white/10"
-                }`}
-              >
-                {body.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function SolarSystemViewer() {
   const [focusId, setFocusId] = useState(DEFAULT_FOCUS_ID);
@@ -55,9 +17,6 @@ export function SolarSystemViewer() {
 
   const simDaysRef = useRef(0);
   const speedDaysPerSecondRef = useRef(speedIndexToDaysPerSecond(speedIndex));
-  const rootRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const dockRef = useRef<HTMLDivElement>(null);
 
   speedDaysPerSecondRef.current = speedIndexToDaysPerSecond(speedIndex);
 
@@ -85,37 +44,30 @@ export function SolarSystemViewer() {
       const phone = mqPhone.matches;
       const phoneBrowser = phone && !standalone;
       const vv = window.visualViewport;
-      const browserChromeBottom =
-        phoneBrowser && vv
-          ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-          : 0;
 
       document.documentElement.classList.toggle("pwa-standalone", standalone);
       document.documentElement.classList.toggle("pwa-phone", standalone && phone);
       document.documentElement.classList.toggle("phone-browser", phoneBrowser);
-      document.documentElement.classList.toggle("touch-phone", phone);
 
-      const root = rootRef.current;
-      const scene = sceneRef.current;
-      const dock = dockRef.current;
-
-      if (phone && root && dock) {
-        applyPhoneLayout(
-          { root, scene, dock },
-          browserChromeBottom,
+      if (phoneBrowser && vv) {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          `${vv.height}px`,
         );
-      } else if (root && dock) {
-        clearPhoneLayout({ root, scene, dock });
+        document.documentElement.style.setProperty(
+          "--browser-chrome-bottom",
+          `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`,
+        );
+      } else {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          `${window.innerHeight}px`,
+        );
+        document.documentElement.style.setProperty(
+          "--browser-chrome-bottom",
+          "0px",
+        );
       }
-
-      document.documentElement.style.setProperty(
-        "--app-height",
-        `${phoneBrowser && vv ? vv.height : window.innerHeight}px`,
-      );
-      document.documentElement.style.setProperty(
-        "--browser-chrome-bottom",
-        `${browserChromeBottom}px`,
-      );
     };
 
     syncLayout();
@@ -129,10 +81,6 @@ export function SolarSystemViewer() {
       mqPhone.removeEventListener("change", syncLayout);
       window.visualViewport?.removeEventListener("resize", syncLayout);
       window.visualViewport?.removeEventListener("scroll", syncLayout);
-      const root = rootRef.current;
-      const scene = sceneRef.current;
-      const dock = dockRef.current;
-      if (root && dock) clearPhoneLayout({ root, scene, dock });
     };
   }, []);
 
@@ -143,12 +91,8 @@ export function SolarSystemViewer() {
   }, []);
 
   return (
-    <div
-      ref={rootRef}
-      className="viewer-root relative w-full overflow-hidden bg-[#02040a]"
-    >
+    <div className="viewer-root relative w-full bg-[#02040a]">
       <SolarSystemScene
-        sceneRef={sceneRef}
         focusId={focusId}
         simDays={simDays}
         epicycleTracing={epicycleTracing}
@@ -194,10 +138,30 @@ export function SolarSystemViewer() {
             </button>
           </div>
         </header>
-      </div>
 
-      <div ref={dockRef}>
-        <OrbPickerDock focusId={focusId} onFocus={handleFocus} />
+        <div className="viewer-orb-dock pointer-events-auto flex w-full justify-start">
+          <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
+            <div className="orb-picker">
+              {PICKER_BODIES.map((body) => {
+                const active = focusId === body.id;
+                return (
+                  <button
+                    key={body.id}
+                    type="button"
+                    onClick={() => handleFocus(body.id)}
+                    className={`orb-btn rounded-full font-medium transition ${
+                      active
+                        ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
+                        : "bg-white/5 text-white/75 hover:bg-white/10"
+                    }`}
+                  >
+                    {body.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
