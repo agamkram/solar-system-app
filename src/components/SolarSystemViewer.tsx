@@ -32,30 +32,55 @@ export function SolarSystemViewer() {
   }, [epicycleTracing]);
 
   useEffect(() => {
-    const syncViewport = () => {
-      document.documentElement.style.setProperty(
-        "--app-height",
-        `${window.innerHeight}px`,
-      );
-    };
+    const mqPhone = window.matchMedia("(max-width: 767px)");
 
-    const standalone =
+    const isStandalone = () =>
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator &&
         (navigator as Navigator & { standalone?: boolean }).standalone);
-    const phone = window.matchMedia("(max-width: 767px)").matches;
-    document.documentElement.classList.toggle("pwa-standalone", !!standalone);
-    document.documentElement.classList.toggle("pwa-phone", !!standalone && phone);
 
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    window.visualViewport?.addEventListener("resize", syncViewport);
-    window.visualViewport?.addEventListener("scroll", syncViewport);
+    const syncLayout = () => {
+      const standalone = isStandalone();
+      const phone = mqPhone.matches;
+      const phoneBrowser = phone && !standalone;
+      const vv = window.visualViewport;
+
+      document.documentElement.classList.toggle("pwa-standalone", standalone);
+      document.documentElement.classList.toggle("pwa-phone", standalone && phone);
+      document.documentElement.classList.toggle("phone-browser", phoneBrowser);
+
+      if (phoneBrowser && vv) {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          `${vv.height}px`,
+        );
+        document.documentElement.style.setProperty(
+          "--browser-chrome-bottom",
+          `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`,
+        );
+      } else {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          `${window.innerHeight}px`,
+        );
+        document.documentElement.style.setProperty(
+          "--browser-chrome-bottom",
+          "0px",
+        );
+      }
+    };
+
+    syncLayout();
+    window.addEventListener("resize", syncLayout);
+    mqPhone.addEventListener("change", syncLayout);
+    window.visualViewport?.addEventListener("resize", syncLayout);
+    window.visualViewport?.addEventListener("scroll", syncLayout);
 
     return () => {
-      window.removeEventListener("resize", syncViewport);
-      window.visualViewport?.removeEventListener("resize", syncViewport);
-      window.visualViewport?.removeEventListener("scroll", syncViewport);
+      window.removeEventListener("resize", syncLayout);
+      mqPhone.removeEventListener("change", syncLayout);
+      window.visualViewport?.removeEventListener("resize", syncLayout);
+      window.visualViewport?.removeEventListener("scroll", syncLayout);
     };
   }, []);
 
