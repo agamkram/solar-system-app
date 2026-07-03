@@ -77,5 +77,9 @@ export function shouldLoadBodyTextureOnPhone(
   focusId: string,
 ): boolean {
   if (!isPhoneDevice()) return true;
-  return bodyId === "sun" || bodyId === focusId;
+  if (bodyId === "sun" || bodyId === focusId) return true;
+  if (bodyId === "moon" && (focusId === "earth" || focusId === "moon")) {
+    return true;
+  }
+  return false;
 }

@@ -61,7 +61,8 @@ function getTexturePaths(body: BodyDefinition, focusId: string): string[] {
   if (
     isPhoneDevice() &&
     !loadMoonTexturesOnPhone() &&
-    body.kind === "moon"
+    body.kind === "moon" &&
+    body.id !== "moon"
   ) {
     return [];
   }
