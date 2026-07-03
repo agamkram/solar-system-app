@@ -90,13 +90,8 @@ body {
   }
 }
 
-/* iPad: wider card + touch-friendly speed slider */
-@media (pointer: coarse) and (min-width: 768px) {
-  .time-controls-card {
-    width: 12.5rem;
-    padding: 0.34rem 0.6rem;
-  }
-
+/* Touch: easier speed slider (phone + iPad) */
+@media (pointer: coarse) {
   .time-controls-card .time-controls-speed {
     margin-top: 0.34rem;
   }
@@ -138,5 +133,21 @@ body {
     width: 1.35rem;
     height: 1.35rem;
     border-width: 2px;
+  }
+}
+
+/* Phone: wider card, fits narrow screens */
+@media (pointer: coarse) and (max-width: 767px) {
+  .time-controls-card {
+    width: min(100%, 11rem);
+    padding: 0.34rem 0.55rem;
+  }
+}
+
+/* iPad: wider card */
+@media (pointer: coarse) and (min-width: 768px) {
+  .time-controls-card {
+    width: 12.5rem;
+    padding: 0.34rem 0.6rem;
   }
 }
