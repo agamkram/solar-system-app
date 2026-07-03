@@ -1,7 +1,11 @@
 import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
-import { orbitLineDivisionCap } from "./device-profile";
+import {
+  orbitLineDivisionCap,
+  orbitRibbonDivisionCap,
+  orbitUsesRibbonMesh,
+} from "./device-profile";
 import { orbitRadiusScene } from "./scale";
 
 const DEG = Math.PI / 180;
@@ -18,27 +22,59 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
+export function worldPerPixel(
+  camera: THREE.Camera,
+  viewportHeight: number,
+): number {
+  const perspective = camera as THREE.PerspectiveCamera;
+  const dist = Math.max(0.8, camera.position.length());
+  const vFov = (perspective.fov ?? 45) * DEG;
+  return (2 * dist * Math.tan(vFov / 2)) / Math.max(1, viewportHeight);
+}
+
 /**
- * Sample count from how large the orbit appears on screen (pixels).
- * World-space chord length was the wrong metric and caused visible facets.
+ * Sample count from projected orbit size in pixels.
+ * Ribbons use a wider pixel spacing (GPU fills between verts smoothly).
  */
 export function orbitLineDivisions(
   semiMajor: number,
   camera: THREE.Camera,
   viewportHeight: number,
   eccentricity = 0,
+  ribbon = orbitUsesRibbonMesh(),
 ): number {
-  const perspective = camera as THREE.PerspectiveCamera;
-  const dist = Math.max(0.8, camera.position.length());
-  const vFov = (perspective.fov ?? 45) * DEG;
-  const worldPerPixel =
-    (2 * dist * Math.tan(vFov / 2)) / Math.max(1, viewportHeight);
-  const projectedRadiusPx = semiMajor / worldPerPixel;
+  const wpp = worldPerPixel(camera, viewportHeight);
+  const projectedRadiusPx = semiMajor / wpp;
   const projectedPerimeterPx =
     TAU * projectedRadiusPx * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const byScreen = Math.ceil(projectedPerimeterPx / 0.8);
-  const cap = orbitLineDivisionCap();
+  const pxSpacing = ribbon ? 1.1 : 0.8;
+  const byScreen = Math.ceil(projectedPerimeterPx / pxSpacing);
+  const cap = ribbon ? orbitRibbonDivisionCap() : orbitLineDivisionCap();
   return Math.min(cap, Math.max(48, byScreen));
+}
+
+/** Reparameterize by arc length so tube verts are evenly spaced along the path. */
+class ArcLengthOrbitCurve extends THREE.Curve<THREE.Vector3> {
+  constructor(private readonly source: THREE.Curve<THREE.Vector3>) {
+    super();
+  }
+
+  getPoint(t: number, optionalTarget = new THREE.Vector3()): THREE.Vector3 {
+    return this.source.getPointAt(t, optionalTarget);
+  }
+}
+
+/** Flat 2-sided tube — continuous mesh that iOS rasterizes smoothly. */
+export function buildOrbitTubeGeometry(
+  body: BodyDefinition,
+  semiMajor: number | undefined,
+  divisions: number,
+  wpp: number,
+  lineWidth = 1,
+): THREE.TubeGeometry {
+  const curve = new ArcLengthOrbitCurve(createOrbitCurve(body, semiMajor));
+  const radius = Math.max(wpp * 0.5 * lineWidth, 0.0002);
+  return new THREE.TubeGeometry(curve, divisions, radius, 2, true);
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {

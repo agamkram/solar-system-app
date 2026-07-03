@@ -36,9 +36,22 @@ export function maxConcurrentTextureLoads(): number {
   return isMobileDevice() ? 1 : 3;
 }
 
-/** Hard cap on orbit-line samples — prevents phone OOM from ring geometry. */
+/** iOS/touch: thin tube ribbons (triangles), not WebGL line stubs. */
+export function orbitUsesRibbonMesh(): boolean {
+  return isMobileDevice();
+}
+
+/** Line2 caps — desktop only. */
 export function orbitLineDivisionCap(): number {
-  if (isPhoneDevice()) return 200;
-  if (isMobileDevice()) return 420;
   return 2400;
+}
+
+/**
+ * Tube ribbon caps — flat 2-sided mesh (~3 verts/segment).
+ * 14 rings × 480 segs ≈ 20k verts on phone; safe and smooth on iOS.
+ */
+export function orbitRibbonDivisionCap(): number {
+  if (isPhoneDevice()) return 480;
+  if (isMobileDevice()) return 720;
+  return 720;
 }
