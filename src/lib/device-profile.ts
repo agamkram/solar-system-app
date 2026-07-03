@@ -75,20 +75,15 @@ export function orbitLineDivisionCap(): number {
   return 600;
 }
 
-/** Skip moon surface textures on phone. */
-export function loadMoonTexturesOnPhone(): boolean {
-  return false;
-}
-
 /** On phone only load sun + the focused body — others load when selected. */
 export function shouldLoadBodyTextureOnPhone(
   bodyId: string,
   focusId: string,
+  parentId?: string | null,
 ): boolean {
   if (!isPhoneDevice()) return true;
   if (bodyId === "sun" || bodyId === focusId) return true;
-  if (bodyId === "moon" && (focusId === "earth" || focusId === "moon")) {
-    return true;
-  }
+  // Moons load when their parent planet is focused (Earth's Moon, Titan, etc.)
+  if (parentId && parentId === focusId) return true;
   return false;
 }

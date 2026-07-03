@@ -8,7 +8,6 @@ import { getBodyStates } from "@/lib/body-states-cache";
 import { type BodyDefinition } from "@/lib/bodies";
 import {
   isPhoneDevice,
-  loadMoonTexturesOnPhone,
   shouldLoadBodyTextureOnPhone,
   sphereSegments,
 } from "@/lib/device-profile";
@@ -55,14 +54,8 @@ function useBodyMotion(
 }
 
 function getTexturePaths(body: BodyDefinition, focusId: string): string[] {
-  if (!shouldLoadBodyTextureOnPhone(body.id, focusId)) {
-    return [];
-  }
   if (
-    isPhoneDevice() &&
-    !loadMoonTexturesOnPhone() &&
-    body.kind === "moon" &&
-    body.id !== "moon"
+    !shouldLoadBodyTextureOnPhone(body.id, focusId, body.parentId)
   ) {
     return [];
   }
