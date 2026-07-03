@@ -119,18 +119,37 @@ body {
   }
 }
 
-/* Phone: match planet card height, still touch-friendly */
+/* Phone: speed + planet cards share one exact height */
 @media (pointer: coarse) and (max-width: 767px) {
+  .orb-picker-panel,
+  .time-controls-card {
+    --phone-panel-h: calc(
+      0.35rem * 2 + 0.875rem + 0.25rem + 0.625rem + 1.6rem
+    );
+    height: var(--phone-panel-h);
+    box-sizing: border-box;
+  }
+
+  .orb-picker-panel {
+    display: flex;
+    align-items: center;
+  }
+
+  .orb-picker {
+    width: 100%;
+  }
+
   .time-controls-card {
     width: min(100%, 11rem);
     padding: 0.35rem 0.55rem;
-    /* Match orb-picker-panel outer height; content stays at top */
-    min-height: calc(
-      0.35rem * 2 + 0.25rem + (0.3rem * 2 + 0.65rem * 1.1) * 2
-    );
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+  }
+
+  .time-controls-card::after {
+    content: "";
+    flex: 1 1 auto;
   }
 
   .time-controls-card .time-controls-speed {
