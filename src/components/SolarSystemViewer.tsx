@@ -50,7 +50,7 @@ export function SolarSystemViewer() {
         onSimDaysChange={setSimDays}
       />
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 sm:p-4">
+      <div className="viewer-ui-overlay pointer-events-none absolute inset-0 flex flex-col justify-between p-3 sm:p-4">
         <header className="pointer-events-none flex items-start justify-between gap-3">
           <TimeControls
             simDays={simDays}

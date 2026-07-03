@@ -75,6 +75,19 @@ body {
   }
 }
 
+/* iOS home-screen: respect notch / status bar */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (display-mode: standalone) {
+    .viewer-ui-overlay {
+      padding:
+        max(0.75rem, env(safe-area-inset-top))
+        max(0.75rem, env(safe-area-inset-right))
+        max(0.75rem, env(safe-area-inset-bottom))
+        max(0.75rem, env(safe-area-inset-left));
+    }
+  }
+}
+
 /* Desktop: compact speed card */
 @media (pointer: fine) {
   .time-controls-card {

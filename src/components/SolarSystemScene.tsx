@@ -94,7 +94,12 @@ export function SolarSystemScene({
           powerPreference: isMobileDevice() ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
-        onCreated={({ gl }) => {
+        onCreated={({ camera, gl }) => {
+          camera.lookAt(
+            initialCamera.target.x,
+            initialCamera.target.y,
+            initialCamera.target.z,
+          );
           gl.domElement.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
           });

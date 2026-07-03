@@ -81,5 +81,7 @@ export function textureFromImageSource(
 ): THREE.Texture {
   const texture = new THREE.Texture(source);
   fitTextureToGpuLimit(texture, maxSize);
+  // ImageBitmap is top-left origin; canvas matches TextureLoader (flipY true).
+  texture.flipY = texture.image instanceof HTMLCanvasElement;
   return texture;
 }
