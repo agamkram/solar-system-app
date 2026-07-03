@@ -59,7 +59,18 @@ body {
 
 .orb-picker .orb-btn {
   width: 100%;
+  min-width: 0;
   padding: 0.3rem 0.25rem;
   font-size: 0.65rem;
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+  .orb-picker-panel {
+    width: 100%;
+    max-width: 100%;
+  }
 }

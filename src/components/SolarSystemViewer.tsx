@@ -86,8 +86,8 @@ export function SolarSystemViewer() {
           </div>
         </header>
 
-        <div className="pointer-events-auto flex justify-start">
-          <div className="orb-picker-panel rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
+        <div className="pointer-events-auto flex w-full justify-start">
+          <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
             <div className="orb-picker">
               {PICKER_BODIES.map((body) => {
                 const active = focusId === body.id;
