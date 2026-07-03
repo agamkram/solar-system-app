@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
+import { Line } from "@react-three/drei";
+import type { Line2 } from "three-stdlib";
+import type { LineMaterial } from "three-stdlib";
 
 import type { BodyDefinition } from "@/lib/bodies";
-import {
-  buildOrbitRibbonGeometry,
-  orbitRibbonSegments,
-  orbitViewDistance,
-} from "@/lib/orbits";
+import { buildOrbitLinePoints, orbitLineDivisions } from "@/lib/orbits";
 import { orbitRadiusScene } from "@/lib/scale";
 
 interface OrbitRingProps {
@@ -20,87 +18,89 @@ interface OrbitRingProps {
   lineWidth?: number;
 }
 
+const LOD_INTERVAL_SEC = 0.45;
+const LOD_CHANGE_RATIO = 1.45;
+
 export function OrbitRing({
   body,
   semiMajor,
   color = "#ffffff",
   opacity = 0.92,
-  lineWidth = 0.6,
+  lineWidth = 1,
 }: OrbitRingProps) {
+  const size = useThree((state) => state.size);
   const camera = useThree((state) => state.camera);
-  const meshRef = useRef<THREE.Mesh>(null);
-  const segmentsRef = useRef(-1);
+  const lineRef = useRef<Line2>(null);
+  const lodTimerRef = useRef(0);
+  const divisionsRef = useRef(-1);
 
   const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
   const eccentricity = body.eccentricity ?? 0;
 
-  const material = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        toneMapped: false,
-        side: THREE.DoubleSide,
-      }),
-    [color, opacity],
+  const [divisions, setDivisions] = useState(() =>
+    orbitLineDivisions(majorAxis, camera, size.height, eccentricity),
   );
 
-  const geometry = useMemo(() => {
-    const viewDistance = orbitViewDistance(camera, majorAxis);
-    const segments = orbitRibbonSegments(
-      majorAxis,
-      eccentricity,
-      viewDistance,
-    );
-    segmentsRef.current = segments;
-    return buildOrbitRibbonGeometry(body, semiMajor, lineWidth, segments);
-  }, [body, semiMajor, lineWidth, majorAxis, eccentricity]);
-
-  const replaceGeometry = (segments: number) => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    const next = buildOrbitRibbonGeometry(
-      body,
-      semiMajor,
-      lineWidth,
-      segments,
-    );
-    mesh.geometry.dispose();
-    mesh.geometry = next;
-    segmentsRef.current = segments;
-  };
-
-  useFrame(() => {
-    const viewDistance = orbitViewDistance(camera, majorAxis);
-    const segments = orbitRibbonSegments(
-      majorAxis,
-      eccentricity,
-      viewDistance,
-    );
-    const current = segmentsRef.current;
-    if (current < 0) return;
-    if (segments === current) return;
-    const delta = Math.abs(segments - current) / current;
-    if (delta < 0.18) return;
-    replaceGeometry(segments);
-  });
+  const points = useMemo(
+    () => buildOrbitLinePoints(body, semiMajor, divisions),
+    [body, semiMajor, divisions],
+  );
 
   useEffect(() => {
-    return () => {
-      geometry.dispose();
-      material.dispose();
-    };
-  }, [geometry, material]);
+    divisionsRef.current = divisions;
+  }, [divisions]);
+
+  useEffect(() => {
+    const next = orbitLineDivisions(
+      majorAxis,
+      camera,
+      size.height,
+      eccentricity,
+    );
+    divisionsRef.current = next;
+    setDivisions(next);
+  }, [body, semiMajor, majorAxis, eccentricity, size.height]);
+
+  useFrame((_, delta) => {
+    const material = lineRef.current?.material as LineMaterial | undefined;
+    if (material) {
+      if (
+        material.resolution.x !== size.width ||
+        material.resolution.y !== size.height
+      ) {
+        material.resolution.set(size.width, size.height);
+        material.needsUpdate = true;
+      }
+    }
+
+    lodTimerRef.current += delta;
+    if (lodTimerRef.current < LOD_INTERVAL_SEC) return;
+    lodTimerRef.current = 0;
+
+    const next = orbitLineDivisions(
+      majorAxis,
+      camera,
+      size.height,
+      eccentricity,
+    );
+    const current = divisionsRef.current;
+    if (current < 0) return;
+    const ratio = next / current;
+    if (ratio > 1 / LOD_CHANGE_RATIO && ratio < LOD_CHANGE_RATIO) return;
+    divisionsRef.current = next;
+    setDivisions(next);
+  });
 
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      material={material}
+    <Line
+      ref={lineRef}
+      points={points}
+      color={color}
+      lineWidth={lineWidth}
+      transparent
+      opacity={opacity}
+      depthWrite={false}
       frustumCulled={false}
-      renderOrder={0}
     />
   );
 }

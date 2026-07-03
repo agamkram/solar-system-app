@@ -82,7 +82,7 @@ export function SolarSystemBodies({
             semiMajor={radius}
             color="#ffffff"
             opacity={0.9}
-            lineWidth={0.65}
+            lineWidth={1}
           />
         ))}
 
@@ -99,7 +99,7 @@ export function SolarSystemBodies({
                 semiMajor={radius}
                 color="#ffffff"
                 opacity={0.55}
-                lineWidth={0.45}
+                lineWidth={0.85}
               />
             </MoonOrbitAnchor>
           );

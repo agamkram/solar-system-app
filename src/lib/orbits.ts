@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
-import { isMobileDevice } from "./device-profile";
+import { orbitLineDivisionCap } from "./device-profile";
 import { orbitRadiusScene } from "./scale";
 
 const DEG = Math.PI / 180;
@@ -18,46 +18,27 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
-const TMP_TANGENT = new THREE.Vector3();
-const TMP_RADIAL = new THREE.Vector3();
-const TMP_BINORMAL = new THREE.Vector3();
-const TMP_SIDE = new THREE.Vector3();
-const TMP_UP = new THREE.Vector3(0, 1, 0);
-
-/** How far the camera is from an orbit ring — drives LOD segment count. */
-export function orbitViewDistance(
+/**
+ * Sample count from how large the orbit appears on screen (pixels).
+ * World-space chord length was the wrong metric and caused visible facets.
+ */
+export function orbitLineDivisions(
+  semiMajor: number,
   camera: THREE.Camera,
-  semiMajor: number,
-): number {
-  const dist = camera.position.length();
-  return Math.max(0.35, Math.abs(dist - semiMajor), dist * 0.12);
-}
-
-/** Arc-length samples for a smooth orbit ribbon at the current view distance. */
-export function orbitRibbonSegments(
-  semiMajor: number,
-  eccentricity = 0,
-  viewDistance = semiMajor,
-): number {
-  const mobile = isMobileDevice();
-  const perimeter =
-    TAU * semiMajor * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const targetChord = Math.max(
-    0.0001,
-    viewDistance * (mobile ? 0.00012 : 0.000055),
-  );
-  const byChord = Math.ceil(perimeter / targetChord);
-  const minSeg = mobile ? 512 : 1024;
-  const maxSeg = mobile ? 6144 : 12288;
-  return Math.min(maxSeg, Math.max(minSeg, byChord));
-}
-
-/** @deprecated Use orbitRibbonSegments — kept for trail helpers. */
-export function orbitLoopSegments(
-  semiMajor: number,
+  viewportHeight: number,
   eccentricity = 0,
 ): number {
-  return orbitRibbonSegments(semiMajor, eccentricity, semiMajor);
+  const perspective = camera as THREE.PerspectiveCamera;
+  const dist = Math.max(0.8, camera.position.length());
+  const vFov = (perspective.fov ?? 45) * DEG;
+  const worldPerPixel =
+    (2 * dist * Math.tan(vFov / 2)) / Math.max(1, viewportHeight);
+  const projectedRadiusPx = semiMajor / worldPerPixel;
+  const projectedPerimeterPx =
+    TAU * projectedRadiusPx * Math.sqrt((1 + eccentricity * eccentricity) / 2);
+  const byScreen = Math.ceil(projectedPerimeterPx / 0.8);
+  const cap = orbitLineDivisionCap();
+  return Math.min(cap, Math.max(48, byScreen));
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {
@@ -255,7 +236,6 @@ class KeplerOrbitCurve extends THREE.Curve<THREE.Vector3> {
   }
 }
 
-/** Exact parametric orbit curve — no chord sampling artifacts when tubed. */
 export function createOrbitCurve(
   body: BodyDefinition,
   semiMajor?: number,
@@ -267,102 +247,23 @@ export function createOrbitCurve(
   return new CircularOrbitCurve(majorAxis);
 }
 
-/** Evenly spaced along arc length — avoids long straight chords on ellipses. */
-export function buildOrbitSpacedPoints(
-  body: BodyDefinition,
-  semiMajor?: number,
-  segments?: number,
-): THREE.Vector3[] {
-  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
-  const eccentricity = body.eccentricity ?? 0;
-  const count =
-    segments ?? orbitRibbonSegments(majorAxis, eccentricity, majorAxis);
-  return createOrbitCurve(body, semiMajor).getSpacedPoints(count);
-}
-
-export function orbitRibbonHalfWidth(
-  majorAxis: number,
-  lineWidth = 0.6,
-): number {
-  const scale = 0.00021 * (lineWidth / 0.6);
-  return Math.max(0.00045, majorAxis * scale);
-}
-
-/** Single continuous ribbon mesh — smooth on iOS, not GL line segments. */
-export function buildOrbitRibbonGeometry(
+/** Arc-length uniform samples — equal spacing along the orbital path. */
+export function buildOrbitLinePoints(
   body: BodyDefinition,
   semiMajor: number | undefined,
-  lineWidth: number,
-  segments: number,
-): THREE.BufferGeometry {
-  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
-  const points = buildOrbitSpacedPoints(body, semiMajor, segments);
-
-  let count = points.length;
-  if (count > 2 && points[0].distanceToSquared(points[count - 1]) < 1e-14) {
-    count -= 1;
-  }
-
-  const half = orbitRibbonHalfWidth(majorAxis, lineWidth);
-  const positions = new Float32Array(count * 6);
-  const indices = new Uint32Array(count * 6);
-
-  for (let i = 0; i < count; i++) {
-    const prev = points[(i - 1 + count) % count];
-    const curr = points[i];
-    const next = points[(i + 1) % count];
-
-    TMP_TANGENT.subVectors(next, prev);
-    if (TMP_TANGENT.lengthSq() < 1e-16) TMP_TANGENT.set(0, 0, 1);
-    TMP_TANGENT.normalize();
-
-    TMP_RADIAL.copy(curr);
-    if (TMP_RADIAL.lengthSq() < 1e-12) TMP_RADIAL.copy(TMP_UP);
-    TMP_RADIAL.normalize();
-
-    TMP_BINORMAL.crossVectors(TMP_RADIAL, TMP_TANGENT);
-    if (TMP_BINORMAL.lengthSq() < 1e-12) {
-      TMP_BINORMAL.crossVectors(TMP_TANGENT, TMP_UP);
-    }
-    TMP_BINORMAL.normalize();
-
-    TMP_SIDE.crossVectors(TMP_TANGENT, TMP_BINORMAL).normalize().multiplyScalar(half);
-
-    const vertex = i * 6;
-    positions[vertex] = curr.x + TMP_SIDE.x;
-    positions[vertex + 1] = curr.y + TMP_SIDE.y;
-    positions[vertex + 2] = curr.z + TMP_SIDE.z;
-    positions[vertex + 3] = curr.x - TMP_SIDE.x;
-    positions[vertex + 4] = curr.y - TMP_SIDE.y;
-    positions[vertex + 5] = curr.z - TMP_SIDE.z;
-  }
-
-  for (let i = 0; i < count; i++) {
-    const edge = i * 6;
-    const left = i * 2;
-    const right = i * 2 + 1;
-    const nextLeft = ((i + 1) % count) * 2;
-    const nextRight = ((i + 1) % count) * 2 + 1;
-    indices[edge] = left;
-    indices[edge + 1] = nextLeft;
-    indices[edge + 2] = right;
-    indices[edge + 3] = right;
-    indices[edge + 4] = nextLeft;
-    indices[edge + 5] = nextRight;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-  return geometry;
+  divisions: number,
+): THREE.Vector3[] {
+  return createOrbitCurve(body, semiMajor).getSpacedPoints(divisions);
 }
 
 export function buildOrbitLoopPoints(
   body: BodyDefinition,
   semiMajor?: number,
-  segments?: number,
+  divisions?: number,
 ): THREE.Vector3[] {
-  return buildOrbitSpacedPoints(body, semiMajor, segments);
+  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
+  const count = divisions ?? Math.min(orbitLineDivisionCap(), 256);
+  return buildOrbitLinePoints(body, semiMajor, count);
 }
 
 export function rotationSpeedRadPerDay(rotationPeriodHours: number): number {
@@ -371,4 +272,3 @@ export function rotationSpeedRadPerDay(rotationPeriodHours: number): number {
   const hours = Math.abs(rotationPeriodHours);
   return direction * (TAU / (hours / 24));
 }
-

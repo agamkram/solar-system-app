@@ -7,6 +7,20 @@ export function isMobileDevice(): boolean {
   );
 }
 
+/** Phones need the tightest GPU/CPU budgets. iPad gets a little more headroom. */
+export function isPhoneDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent;
+  const ipad =
+    /iPad/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ipad) return false;
+  return (
+    window.matchMedia("(pointer: coarse)").matches ||
+    /iPhone|iPod|Android/i.test(ua)
+  );
+}
+
 export function canvasDpr(): number | [number, number] {
   return isMobileDevice() ? 1 : [1, 2];
 }
@@ -20,4 +34,11 @@ export function sphereSegments(bodyId: string, kind: string): number {
 
 export function maxConcurrentTextureLoads(): number {
   return isMobileDevice() ? 1 : 3;
+}
+
+/** Hard cap on orbit-line samples — prevents phone OOM from ring geometry. */
+export function orbitLineDivisionCap(): number {
+  if (isPhoneDevice()) return 200;
+  if (isMobileDevice()) return 420;
+  return 2400;
 }
