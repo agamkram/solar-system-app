@@ -159,8 +159,16 @@ body {
   }
 }
 
-/* Desktop: compact speed card */
+/* Desktop: compact speed card + planet picker at bottom */
 @media (pointer: fine) {
+  .viewer-ui-overlay {
+    padding: 0.75rem;
+  }
+
+  .viewer-orb-dock {
+    margin-top: auto;
+  }
+
   .time-controls-card {
     padding: 0.25rem 0.5rem;
   }
@@ -171,6 +179,12 @@ body {
 
   .time-controls-card .time-controls-speed-labels {
     margin-bottom: 0.1rem;
+  }
+}
+
+@media (pointer: fine) and (min-width: 640px) {
+  .viewer-ui-overlay {
+    padding: 1rem;
   }
 }
 
