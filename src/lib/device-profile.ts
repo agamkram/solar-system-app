@@ -44,8 +44,8 @@ export function maxTextureUploadSize(): number {
 }
 
 export function skyTextureUploadSize(): number {
-  if (isPhoneDevice()) return 1024;
-  if (isMobileDevice()) return 2048;
+  if (isPhoneDevice()) return 2048;
+  if (isMobileDevice()) return 4096;
   return 8192;
 }
 

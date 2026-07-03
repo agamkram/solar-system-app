@@ -11,6 +11,12 @@ import {
   textureFromImageSource,
 } from "@/lib/gpu-texture";
 
+function skyAssetUrl(): string {
+  if (isPhoneDevice()) return "/stars-2k.jpg";
+  if (isMobileDevice()) return "/stars-4k.jpg";
+  return "/stars-8k.jpg";
+}
+
 export function SkyBackground() {
   const { gl, scene } = useThree();
 
@@ -26,7 +32,7 @@ export function SkyBackground() {
 
       try {
         if (isMobileDevice()) {
-          const source = await loadImageResized("/stars-8k.jpg", maxSize);
+          const source = await loadImageResized(skyAssetUrl(), maxSize);
           if (cancelled) {
             if ("close" in source && typeof source.close === "function") {
               source.close();
@@ -37,7 +43,7 @@ export function SkyBackground() {
         } else {
           texture = await new Promise<THREE.Texture>((resolve, reject) => {
             new THREE.TextureLoader().load(
-              "/stars-8k.jpg",
+              skyAssetUrl(),
               resolve,
               undefined,
               reject,
