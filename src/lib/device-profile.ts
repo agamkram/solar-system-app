@@ -50,7 +50,7 @@ export function maxTextureUploadSize(): number {
 }
 
 export function skyTextureUploadSize(): number {
-  if (isPhoneDevice()) return 2048;
+  if (isPhoneDevice()) return 4096;
   if (isIpadDevice()) return 4096;
   return 8192;
 }

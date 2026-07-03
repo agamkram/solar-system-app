@@ -17,7 +17,7 @@ import {
 } from "@/lib/gpu-texture";
 
 function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-2k.jpg";
+  if (isPhoneDevice()) return "/stars-4k.jpg";
   if (isIpadDevice()) return "/stars-4k.jpg";
   return "/stars-8k.jpg";
 }
