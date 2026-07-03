@@ -1,13 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
-import type { Line2 } from "three-stdlib";
-import type { LineMaterial } from "three-stdlib";
+import { useEffect, useMemo } from "react";
+import * as THREE from "three";
 
 import type { BodyDefinition } from "@/lib/bodies";
+import { isMobileDevice } from "@/lib/device-profile";
 import { buildOrbitLoopPoints } from "@/lib/orbits";
+import { orbitRadiusScene } from "@/lib/scale";
 
 interface OrbitRingProps {
   body: BodyDefinition;
@@ -17,6 +16,11 @@ interface OrbitRingProps {
   lineWidth?: number;
 }
 
+function orbitTubeRadius(majorAxis: number, lineWidth = 0.6): number {
+  const scale = 0.00042 * (lineWidth / 0.6);
+  return Math.max(0.0009, majorAxis * scale);
+}
+
 export function OrbitRing({
   body,
   semiMajor,
@@ -24,44 +28,45 @@ export function OrbitRing({
   opacity = 0.92,
   lineWidth = 0.6,
 }: OrbitRingProps) {
-  const size = useThree((state) => state.size);
-  const lineRef = useRef<Line2>(null);
+  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
 
-  const points = useMemo(
-    () => buildOrbitLoopPoints(body, semiMajor),
-    [body, semiMajor],
-  );
+  const geometry = useMemo(() => {
+    const points = buildOrbitLoopPoints(body, semiMajor);
+    if (points.length < 4) return null;
 
-  useLayoutEffect(() => {
-    const material = lineRef.current?.material as LineMaterial | undefined;
-    if (material) {
-      material.resolution.set(size.width, size.height);
-      material.needsUpdate = true;
-    }
-  }, [size.width, size.height]);
+    const curve = new THREE.CatmullRomCurve3(points, true, "catmullrom", 0.5);
+    const tubularSegments = Math.min(
+      4096,
+      Math.max(1024, points.length * 2),
+    );
+    const radialSegments = isMobileDevice() ? 5 : 6;
 
-  useFrame(() => {
-    const material = lineRef.current?.material as LineMaterial | undefined;
-    if (!material) return;
-    if (
-      material.resolution.x !== size.width ||
-      material.resolution.y !== size.height
-    ) {
-      material.resolution.set(size.width, size.height);
-      material.needsUpdate = true;
-    }
-  });
+    return new THREE.TubeGeometry(
+      curve,
+      tubularSegments,
+      orbitTubeRadius(majorAxis, lineWidth),
+      radialSegments,
+      true,
+    );
+  }, [body, semiMajor, majorAxis, lineWidth]);
+
+  useEffect(() => {
+    return () => {
+      geometry?.dispose();
+    };
+  }, [geometry]);
+
+  if (!geometry) return null;
 
   return (
-    <Line
-      ref={lineRef}
-      points={points}
-      color={color}
-      lineWidth={lineWidth}
-      transparent
-      opacity={opacity}
-      depthWrite={false}
-      frustumCulled={false}
-    />
+    <mesh geometry={geometry} frustumCulled={false} renderOrder={0}>
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
   );
 }
