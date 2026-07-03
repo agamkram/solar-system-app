@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-import { isPhoneDevice, skyTextureUploadSize } from "@/lib/device-profile";
+import { isMobileDevice, maxAssetTextureSize } from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
   loadImageResized,
@@ -19,13 +19,10 @@ export function SkyBackground() {
     let texture: THREE.Texture | null = null;
 
     const applySky = async () => {
-      const maxSize = Math.min(
-        gl.capabilities.maxTextureSize,
-        skyTextureUploadSize(),
-      );
+      const maxSize = maxAssetTextureSize(gl.capabilities.maxTextureSize);
 
       try {
-        if (isPhoneDevice()) {
+        if (isMobileDevice()) {
           const source = await loadImageResized("/stars-8k.jpg", maxSize);
           if (cancelled) {
             if ("close" in source && typeof source.close === "function") {
@@ -55,7 +52,10 @@ export function SkyBackground() {
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         texture.generateMipmaps = false;
-        texture.anisotropy = 1;
+        texture.anisotropy = Math.min(
+          4,
+          gl.capabilities.getMaxAnisotropy(),
+        );
         texture.needsUpdate = true;
         scene.background = texture;
       } catch {
@@ -63,14 +63,10 @@ export function SkyBackground() {
       }
     };
 
-    const delay = isPhoneDevice() ? 900 : 0;
-    const timer = window.setTimeout(() => {
-      void applySky();
-    }, delay);
+    void applySky();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
       scene.background = null;
       texture?.dispose();
     };

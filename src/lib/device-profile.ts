@@ -36,17 +36,14 @@ export function maxConcurrentTextureLoads(): number {
   return isMobileDevice() ? 1 : 3;
 }
 
-/** GPU upload cap — images are resized during decode on phone. */
-export function maxTextureUploadSize(): number {
-  if (isPhoneDevice()) return 1024;
-  if (isMobileDevice()) return 2048;
-  return 8192;
+/** Full asset resolution up to what the GPU supports (never artificially capped). */
+export function maxAssetTextureSize(gpuMax: number): number {
+  return Math.min(gpuMax, 8192);
 }
 
-export function skyTextureUploadSize(): number {
-  if (isPhoneDevice()) return 1024;
-  if (isMobileDevice()) return 2048;
-  return 8192;
+/** Resize during decode on touch devices — avoids RAM spikes, not lower quality. */
+export function resizeTexturesDuringDecode(): boolean {
+  return isMobileDevice();
 }
 
 export function useTextureMipmaps(): boolean {
@@ -58,18 +55,4 @@ export function orbitLineDivisionCap(): number {
   if (isPhoneDevice()) return 72;
   if (isMobileDevice()) return 180;
   return 600;
-}
-
-/** Skip moon surface textures on phone. */
-export function loadMoonTexturesOnPhone(): boolean {
-  return false;
-}
-
-/** On phone only load sun + the focused body — others load when selected. */
-export function shouldLoadBodyTextureOnPhone(
-  bodyId: string,
-  focusId: string,
-): boolean {
-  if (!isPhoneDevice()) return true;
-  return bodyId === "sun" || bodyId === focusId;
 }

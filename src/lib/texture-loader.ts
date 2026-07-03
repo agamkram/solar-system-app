@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 import {
-  isPhoneDevice,
+  maxAssetTextureSize,
   maxConcurrentTextureLoads,
-  maxTextureUploadSize,
+  resizeTexturesDuringDecode,
 } from "./device-profile";
 import { configureColorMap } from "./texture-config";
 import {
@@ -43,9 +43,9 @@ async function loadTextureImmediate(
   url: string,
   gl: THREE.WebGLRenderer,
 ): Promise<THREE.Texture> {
-  const maxSize = maxTextureUploadSize();
+  const maxSize = maxAssetTextureSize(gl.capabilities.maxTextureSize);
 
-  if (isPhoneDevice()) {
+  if (resizeTexturesDuringDecode()) {
     const source = await loadImageResized(url, maxSize);
     const texture = textureFromImageSource(source, maxSize);
     configureColorMap(texture, gl);
@@ -67,7 +67,7 @@ async function loadTextureImmediate(
   });
 }
 
-/** Queued loads — one at a time on phone; resized before GPU upload. */
+/** Queued loads — one at a time on mobile; full GPU resolution. */
 export function loadTextureQueued(
   url: string,
   gl: THREE.WebGLRenderer,
