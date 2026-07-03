@@ -29,6 +29,8 @@ export function fitTextureToGpuLimit(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image as CanvasImageSource, 0, 0, canvas.width, canvas.height);
   if ("close" in image && typeof image.close === "function") {
     image.close();
@@ -54,6 +56,8 @@ function loadImageViaCanvas(
         reject(new Error("canvas 2d unavailable"));
         return;
       }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       resolve(canvas);
     };
