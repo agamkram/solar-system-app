@@ -36,7 +36,9 @@ export function SolarSystemViewer() {
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator &&
         (navigator as Navigator & { standalone?: boolean }).standalone);
+    const phone = window.matchMedia("(max-width: 767px)").matches;
     document.documentElement.classList.toggle("pwa-standalone", !!standalone);
+    document.documentElement.classList.toggle("pwa-phone", !!standalone && phone);
   }, []);
 
   const handleNow = useCallback(() => {
@@ -46,7 +48,7 @@ export function SolarSystemViewer() {
   }, []);
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-[#02040a]">
+    <div className="viewer-root relative h-dvh w-full overflow-hidden bg-[#02040a]">
       <SolarSystemScene
         focusId={focusId}
         simDays={simDays}
@@ -94,7 +96,7 @@ export function SolarSystemViewer() {
           </div>
         </header>
 
-        <div className="pointer-events-auto flex w-full justify-start">
+        <div className="viewer-orb-dock pointer-events-auto flex w-full justify-start">
           <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
             <div className="orb-picker">
               {PICKER_BODIES.map((body) => {
