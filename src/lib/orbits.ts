@@ -1,11 +1,7 @@
 import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
-import {
-  orbitLineDivisionCap,
-  orbitRibbonDivisionCap,
-  orbitUsesRibbonMesh,
-} from "./device-profile";
+import { orbitLineDivisionCap } from "./device-profile";
 import { orbitRadiusScene } from "./scale";
 
 const DEG = Math.PI / 180;
@@ -32,49 +28,20 @@ export function worldPerPixel(
   return (2 * dist * Math.tan(vFov / 2)) / Math.max(1, viewportHeight);
 }
 
-/**
- * Sample count from projected orbit size in pixels.
- * Ribbons use a wider pixel spacing (GPU fills between verts smoothly).
- */
+/** Sample count from on-screen orbit size. Canvas round-joins need fewer points. */
 export function orbitLineDivisions(
   semiMajor: number,
   camera: THREE.Camera,
   viewportHeight: number,
   eccentricity = 0,
-  ribbon = orbitUsesRibbonMesh(),
 ): number {
   const wpp = worldPerPixel(camera, viewportHeight);
   const projectedRadiusPx = semiMajor / wpp;
   const projectedPerimeterPx =
     TAU * projectedRadiusPx * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const pxSpacing = ribbon ? 1.1 : 0.8;
-  const byScreen = Math.ceil(projectedPerimeterPx / pxSpacing);
-  const cap = ribbon ? orbitRibbonDivisionCap() : orbitLineDivisionCap();
-  return Math.min(cap, Math.max(48, byScreen));
-}
-
-/** Reparameterize by arc length so tube verts are evenly spaced along the path. */
-class ArcLengthOrbitCurve extends THREE.Curve<THREE.Vector3> {
-  constructor(private readonly source: THREE.Curve<THREE.Vector3>) {
-    super();
-  }
-
-  getPoint(t: number, optionalTarget = new THREE.Vector3()): THREE.Vector3 {
-    return this.source.getPointAt(t, optionalTarget);
-  }
-}
-
-/** Flat 2-sided tube — continuous mesh that iOS rasterizes smoothly. */
-export function buildOrbitTubeGeometry(
-  body: BodyDefinition,
-  semiMajor: number | undefined,
-  divisions: number,
-  wpp: number,
-  lineWidth = 1,
-): THREE.TubeGeometry {
-  const curve = new ArcLengthOrbitCurve(createOrbitCurve(body, semiMajor));
-  const radius = Math.max(wpp * 0.5 * lineWidth, 0.0002);
-  return new THREE.TubeGeometry(curve, divisions, radius, 2, true);
+  const byScreen = Math.ceil(projectedPerimeterPx / 1.5);
+  const cap = orbitLineDivisionCap();
+  return Math.min(cap, Math.max(40, byScreen));
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {
