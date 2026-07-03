@@ -151,10 +151,6 @@ html.pwa-standalone .viewer-root {
   }
 
   .viewer-root {
-    min-height: max(
-      var(--app-height, 100vh),
-      calc(100vh + env(safe-area-inset-bottom, 0px))
-    );
     height: 100vh;
     height: -webkit-fill-available;
     overflow-x: hidden;
@@ -192,6 +188,17 @@ html.pwa-standalone.pwa-phone .viewer-scene {
 
 html.pwa-standalone.pwa-phone .viewer-ui-overlay {
   padding-bottom: 0;
+}
+
+html.pwa-standalone.pwa-phone .viewer-orb-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  padding-bottom: 0.35rem;
 }
 
 html.pwa-standalone.pwa-phone body {
