@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { getBodyStates } from "@/lib/body-states-cache";
 import { type BodyDefinition } from "@/lib/bodies";
 import { isPhoneDevice, sphereSegments } from "@/lib/device-profile";
+import { shouldGpuLoadBodyTextures } from "@/lib/mobile-texture-policy";
 import { bodyRadiusScene } from "@/lib/scale";
 import { rotationSpeedRadPerDay } from "@/lib/orbits";
 import { createSaturnRingGeometry } from "@/lib/saturn-ring-geometry";
@@ -15,6 +16,7 @@ import { loadTextureQueued } from "@/lib/texture-loader";
 
 export interface CelestialBodyMeshProps {
   body: BodyDefinition;
+  focusId: string;
   simDaysRef: React.RefObject<number>;
 }
 
@@ -48,13 +50,19 @@ function useBodyMotion(
   });
 }
 
-function getTexturePaths(body: BodyDefinition): string[] {
+function getTexturePaths(body: BodyDefinition, focusId: string): string[] {
+  if (!shouldGpuLoadBodyTextures(body.id, focusId)) {
+    return [];
+  }
   return [body.texture, body.atmosphereTexture, body.ringTexture].filter(
     Boolean,
   ) as string[];
 }
 
-function useQueuedBodyTextures(paths: string[]): (THREE.Texture | null)[] {
+function useQueuedBodyTextures(
+  paths: string[],
+  bodyId: string,
+): (THREE.Texture | null)[] {
   const { gl } = useThree();
   const [textures, setTextures] = useState<(THREE.Texture | null)[]>(() =>
     paths.map(() => null),
@@ -65,7 +73,7 @@ function useQueuedBodyTextures(paths: string[]): (THREE.Texture | null)[] {
 
     let active = true;
     paths.forEach((path, index) => {
-      loadTextureQueued(path, gl)
+      loadTextureQueued(path, gl, bodyId)
         .then((texture) => {
           if (!active) return;
           setTextures((current) => {
@@ -83,7 +91,7 @@ function useQueuedBodyTextures(paths: string[]): (THREE.Texture | null)[] {
     return () => {
       active = false;
     };
-  }, [paths.join("|"), gl]);
+  }, [paths.join("|"), gl, bodyId]);
 
   return textures;
 }
@@ -253,8 +261,8 @@ function CelestialBodyVisual({
 }
 
 export function CelestialBodyMesh(props: CelestialBodyMeshProps) {
-  const texturePaths = getTexturePaths(props.body);
-  const loadedTextures = useQueuedBodyTextures(texturePaths);
+  const texturePaths = getTexturePaths(props.body, props.focusId);
+  const loadedTextures = useQueuedBodyTextures(texturePaths, props.body.id);
 
   let textureIndex = 0;
   const map = props.body.texture ? loadedTextures[textureIndex++] : null;

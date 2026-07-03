@@ -1,6 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { isMobileDevice } from "@/lib/device-profile";
+import { mobileGpuBodyIds } from "@/lib/mobile-texture-policy";
+import { releaseMobileTextures } from "@/lib/texture-loader";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -27,6 +30,11 @@ export function SolarSystemBodies({
 }: SolarSystemBodiesProps) {
   const systemRef = useRef<THREE.Group>(null);
 
+  useEffect(() => {
+    if (!isMobileDevice()) return;
+    releaseMobileTextures(mobileGpuBodyIds(focusId));
+  }, [focusId]);
+
   useFrame(() => {
     if (!systemRef.current) return;
     const focusState = getBodyStates(simDaysRef.current ?? 0).get(focusId);
@@ -43,6 +51,7 @@ export function SolarSystemBodies({
           <CelestialBodyMesh
             key={body.id}
             body={body}
+            focusId={focusId}
             simDaysRef={simDaysRef}
           />
         ))}

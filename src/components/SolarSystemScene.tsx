@@ -98,6 +98,11 @@ export function SolarSystemScene({
           gl.domElement.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
           });
+          gl.domElement.addEventListener("webglcontextrestored", () => {
+            void import("@/lib/texture-loader").then((m) =>
+              m.clearTextureCache(),
+            );
+          });
         }}
       >
         <SceneContent focusId={focusId} simDays={simDays} {...props} />

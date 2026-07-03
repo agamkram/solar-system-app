@@ -6,6 +6,10 @@ import * as THREE from "three";
 
 import { isMobileDevice, maxAssetTextureSize } from "@/lib/device-profile";
 import {
+  notifySkyLoadComplete,
+  notifySkyLoadStart,
+} from "@/lib/texture-loader";
+import {
   fitTextureToGpuLimit,
   loadImageResized,
   textureFromImageSource,
@@ -19,6 +23,7 @@ export function SkyBackground() {
     let texture: THREE.Texture | null = null;
 
     const applySky = async () => {
+      notifySkyLoadStart();
       const maxSize = maxAssetTextureSize(gl.capabilities.maxTextureSize);
 
       try {
@@ -58,8 +63,9 @@ export function SkyBackground() {
         );
         texture.needsUpdate = true;
         scene.background = texture;
+        notifySkyLoadComplete();
       } catch {
-        /* keep solid background on failure */
+        notifySkyLoadComplete();
       }
     };
 
@@ -69,6 +75,7 @@ export function SkyBackground() {
       cancelled = true;
       scene.background = null;
       texture?.dispose();
+      notifySkyLoadComplete();
     };
   }, [gl, scene]);
 
