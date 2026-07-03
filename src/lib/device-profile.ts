@@ -7,6 +7,15 @@ export function isMobileDevice(): boolean {
   );
 }
 
+export function isIOSDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return (
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export function isIpadDevice(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent;

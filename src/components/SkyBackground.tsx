@@ -61,6 +61,7 @@ export function SkyBackground() {
           fitTextureToGpuLimit(texture, maxSize);
         }
 
+        texture.flipY = true;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.minFilter = THREE.LinearFilter;

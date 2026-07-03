@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -25,7 +25,7 @@ export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
   const transitionBlend = useRef(1);
   const focusInitialized = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const controls = controlsRef.current;
     const { position, target } = focusCameraState(
       focusId,
@@ -35,6 +35,8 @@ export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
     if (!focusInitialized.current) {
       focusInitialized.current = true;
       camera.position.copy(position);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(target);
       if (controls) {
         controls.target.copy(target);
         controls.update();
@@ -93,5 +95,13 @@ export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
     }
   });
 
-  return <OrbitControls ref={controlsRef} enablePan={false} />;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={false}
+      target={[0, 0, 0]}
+      minPolarAngle={0.15}
+      maxPolarAngle={Math.PI - 0.15}
+    />
+  );
 }

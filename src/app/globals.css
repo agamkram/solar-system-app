@@ -75,17 +75,13 @@ body {
   }
 }
 
-/* iOS home-screen: respect notch / status bar */
-@supports (padding-top: env(safe-area-inset-top)) {
-  @media (display-mode: standalone) {
-    .viewer-ui-overlay {
-      padding:
-        max(0.75rem, env(safe-area-inset-top))
-        max(0.75rem, env(safe-area-inset-right))
-        max(0.75rem, env(safe-area-inset-bottom))
-        max(0.75rem, env(safe-area-inset-left));
-    }
-  }
+/* iOS Add to Home Screen — navigator.standalone + safe area */
+html.pwa-standalone .viewer-ui-overlay {
+  padding:
+    calc(0.75rem + env(safe-area-inset-top, 0px))
+    calc(0.75rem + env(safe-area-inset-right, 0px))
+    calc(0.75rem + env(safe-area-inset-bottom, 0px))
+    calc(0.75rem + env(safe-area-inset-left, 0px));
 }
 
 /* Desktop: compact speed card */

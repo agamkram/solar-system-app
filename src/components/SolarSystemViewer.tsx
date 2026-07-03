@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
 import { speedIndexToDaysPerSecond } from "@/lib/playback";
@@ -30,6 +30,14 @@ export function SolarSystemViewer() {
     }
     setEpicycleTracing((on) => !on);
   }, [epicycleTracing]);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator &&
+        (navigator as Navigator & { standalone?: boolean }).standalone);
+    document.documentElement.classList.toggle("pwa-standalone", !!standalone);
+  }, []);
 
   const handleNow = useCallback(() => {
     simDaysRef.current = 0;
