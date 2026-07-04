@@ -8,33 +8,41 @@ function readSafeBottom(): number {
   return value;
 }
 
+function isTouchDevice(): boolean {
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
 function isPhoneWidth(): boolean {
   return window.matchMedia("(max-width: 767px)").matches;
 }
 
-export function applyPhoneLayoutDOM(
+export function applyTouchLayoutDOM(
   root: HTMLElement,
   scene: HTMLElement | null,
   dock: HTMLElement,
   browserChromeBottom = 0,
 ): void {
-  if (!isPhoneWidth()) return;
+  if (!isTouchDevice()) return;
 
   const safeBottom = readSafeBottom();
   const screenH = window.innerHeight;
-  const dockBottom = browserChromeBottom;
+  const totalH = screenH + safeBottom;
+  const phone = isPhoneWidth();
+  const dockPad = phone ? Math.max(4, safeBottom - 6) : Math.max(8, safeBottom);
 
-  document.documentElement.style.height = `${screenH}px`;
-  document.body.style.height = `${screenH}px`;
+  document.documentElement.style.height = `${totalH}px`;
+  document.body.style.height = `${totalH}px`;
   document.body.style.margin = "0";
   document.body.style.overflow = "hidden";
+  document.body.style.background = "#02040a";
 
   root.style.position = "fixed";
   root.style.top = "0";
   root.style.left = "0";
   root.style.right = "0";
+  root.style.bottom = "0";
   root.style.width = "100%";
-  root.style.height = `${screenH + safeBottom}px`;
+  root.style.height = `${totalH}px`;
   root.style.minHeight = `${screenH}px`;
   root.style.overflow = "hidden";
   root.style.background = "#02040a";
@@ -53,18 +61,17 @@ export function applyPhoneLayoutDOM(
   dock.style.position = "fixed";
   dock.style.left = "0";
   dock.style.right = "0";
-  dock.style.bottom = `${dockBottom}px`;
+  dock.style.bottom = `${browserChromeBottom}px`;
   dock.style.zIndex = "20";
   dock.style.paddingLeft = "calc(0.75rem + env(safe-area-inset-left, 0px))";
   dock.style.paddingRight = "calc(0.75rem + env(safe-area-inset-right, 0px))";
-  const dockPad = Math.max(4, safeBottom - 6);
   dock.style.paddingBottom = `${dockPad}px`;
   dock.style.margin = "0";
 
   window.dispatchEvent(new Event("resize"));
 }
 
-export function clearPhoneLayoutDOM(
+export function clearTouchLayoutDOM(
   root: HTMLElement,
   scene: HTMLElement | null,
   dock: HTMLElement,
@@ -76,6 +83,7 @@ export function clearPhoneLayoutDOM(
   document.body.style.removeProperty("height");
   document.body.style.removeProperty("margin");
   document.body.style.removeProperty("overflow");
+  document.body.style.removeProperty("background");
   clear(root);
   if (scene) clear(scene);
   clear(dock);

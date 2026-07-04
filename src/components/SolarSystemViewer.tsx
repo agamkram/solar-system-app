@@ -4,9 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
 import {
-  applyPhoneLayoutDOM,
-  clearPhoneLayoutDOM,
-} from "@/lib/phone-layout-dom";
+  applyTouchLayoutDOM,
+  clearTouchLayoutDOM,
+} from "@/lib/touch-layout-dom";
 import { speedIndexToDaysPerSecond } from "@/lib/playback";
 import { SolarSystemScene } from "./SolarSystemScene";
 import { TimeControls } from "./TimeControls";
@@ -56,14 +56,15 @@ export function SolarSystemViewer() {
     document.documentElement.classList.toggle("pwa-phone", standalone && phone);
     document.documentElement.classList.toggle("phone-browser", phoneBrowser);
 
+    const touch = window.matchMedia("(pointer: coarse)").matches;
     const root = rootRef.current;
     const scene = sceneRef.current;
     const dock = dockRef.current;
 
-    if (phone && root && dock) {
-      applyPhoneLayoutDOM(root, scene, dock, browserChromeBottom);
+    if (touch && root && dock) {
+      applyTouchLayoutDOM(root, scene, dock, browserChromeBottom);
     } else if (root && dock) {
-      clearPhoneLayoutDOM(root, scene, dock);
+      clearTouchLayoutDOM(root, scene, dock);
     }
   }, []);
 

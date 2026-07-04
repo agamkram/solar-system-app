@@ -141,48 +141,11 @@ html.pwa-standalone .viewer-root {
   }
 }
 
-/* Phone: fill full screen height, picker flush to bottom */
-@media (pointer: coarse) and (max-width: 767px) {
-  html,
-  body {
-    height: var(--screen-h, 100vh);
-    min-height: var(--screen-h, 100vh);
-    background: #02040a;
-  }
-
-  .viewer-root {
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: auto;
-    height: var(--screen-h, 100vh);
-    min-height: var(--screen-h, 100vh);
-    overflow: hidden;
-  }
-
-  .viewer-scene {
-    inset: 0;
-  }
-
+/* Touch phone/iPad layout handled by touch-layout-dom.ts */
+@media (pointer: coarse) {
   .viewer-ui-overlay {
     z-index: 2;
   }
-
-  .viewer-orb-dock {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
-    padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px));
-  }
-}
-
-/* Phone Safari browser: lift picker above toolbar only */
-html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
-  bottom: var(--browser-chrome-bottom, 0px);
 }
 
 /* Desktop: planet picker pinned to bottom (sibling of overlay) */
