@@ -82,15 +82,12 @@ export function SolarSystemScene({
   const mobile = isMobileDevice();
 
   return (
-    <div ref={sceneRef} className="viewer-scene absolute inset-0">
-      {mobile && (
-        <div
-          className="viewer-sky-css pointer-events-none absolute inset-0"
-          aria-hidden
-        />
-      )}
+    <div
+      ref={sceneRef}
+      className={`viewer-scene absolute inset-0${mobile ? " viewer-scene--touch" : ""}`}
+    >
       <Canvas
-        className="relative z-[1] h-full w-full"
+        className="h-full w-full"
         frameloop="always"
         camera={{
           position: [
@@ -104,16 +101,13 @@ export function SolarSystemScene({
         }}
         dpr={canvasDpr()}
         gl={{
-          alpha: mobile,
           antialias: !mobile,
           powerPreference: mobile ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
         onCreated={({ camera, gl, scene }) => {
-          if (!mobile) {
-            scene.background = new THREE.Color("#02040a");
-          }
-          gl.setClearColor(0x02040a, mobile ? 0 : 1);
+          scene.background = new THREE.Color("#02040a");
+          gl.setClearColor(0x02040a, 1);
           camera.lookAt(
             initialCamera.target.x,
             initialCamera.target.y,

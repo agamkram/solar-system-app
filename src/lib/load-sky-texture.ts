@@ -36,14 +36,6 @@ export function configureSkyTexture(texture: THREE.Texture): THREE.Texture {
   return texture;
 }
 
-/** Sphere UVs need UVMapping — EquirectangularReflectionMapping is for scene.background only. */
-export function skyMeshTexture(texture: THREE.Texture): THREE.Texture {
-  const meshMap = texture.clone();
-  applySkySampler(meshMap);
-  meshMap.mapping = THREE.UVMapping;
-  return meshMap;
-}
-
 export async function loadSkyTexture(
   gl: THREE.WebGLRenderer,
 ): Promise<THREE.Texture | null> {

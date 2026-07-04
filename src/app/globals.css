@@ -31,9 +31,8 @@ body {
   height: -webkit-fill-available;
 }
 
-/* CSS star field behind WebGL on touch — survives iOS pinch/resize glitches. */
-.viewer-sky-css {
-  z-index: 0;
+/* Instant star field on touch while WebGL texture loads (canvas covers once ready). */
+.viewer-scene--touch {
   background-color: #02040a;
   background-image: url("/stars-4k.jpg");
   background-position: center;
@@ -42,7 +41,7 @@ body {
 }
 
 @media (max-width: 767px) {
-  .viewer-sky-css {
+  .viewer-scene--touch {
     background-image: url("/stars-phone.jpg?v=3");
   }
 }
