@@ -31,6 +31,22 @@ body {
   height: -webkit-fill-available;
 }
 
+/* CSS star field behind WebGL on touch — survives iOS pinch/resize glitches. */
+.viewer-sky-css {
+  z-index: 0;
+  background-color: #02040a;
+  background-image: url("/stars-4k.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+@media (max-width: 767px) {
+  .viewer-sky-css {
+    background-image: url("/stars-phone.jpg?v=3");
+  }
+}
+
 .time-speed-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

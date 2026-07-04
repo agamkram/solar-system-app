@@ -1,133 +1,117 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-import {
-  isIpadDevice,
-  isMobileDevice,
-  isPhoneDevice,
-  skyTextureUploadSize,
-} from "@/lib/device-profile";
-import {
-  fitTextureToGpuLimit,
-  loadPhoneSkyImage,
-  loadSkyImageResized,
-  textureFromImageSource,
-} from "@/lib/gpu-texture";
+import { isIpadDevice, isMobileDevice, isPhoneDevice } from "@/lib/device-profile";
+import { loadSkyTexture, skyMeshTexture } from "@/lib/load-sky-texture";
 import { skyTextureCache } from "@/lib/sky-texture-cache";
+import { godsViewDistance } from "@/lib/scale";
 
-function skyAssetUrl(): string {
-  if (isPhoneDevice()) return "/stars-phone.jpg?v=3";
-  return "/stars-8k.jpg";
-}
+const SKY_RADIUS = () => godsViewDistance() * 22;
 
-function applySkyTexture(scene: THREE.Scene, texture: THREE.Texture): void {
-  texture.flipY = true;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-  texture.anisotropy = 1;
-  texture.needsUpdate = true;
-  skyTextureCache.texture = texture;
-  scene.background = texture;
-}
+/** Inverted sphere — stable on iOS WebGL during pinch/resize (scene.background is not). */
+function SkySphere() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const { camera, gl, scene } = useThree();
+  const [map, setMap] = useState<THREE.Texture | null>(() => {
+    const cached = skyTextureCache.texture;
+    return cached ? skyMeshTexture(cached) : null;
+  });
 
-export function SkyBackground() {
-  const { gl, scene } = useThree();
-  const loadingRef = useRef(false);
+  const applyMap = (texture: THREE.Texture | null) => {
+    if (!texture) return;
+    setMap(skyMeshTexture(texture));
+    if (materialRef.current) {
+      materialRef.current.needsUpdate = true;
+    }
+  };
 
   useEffect(() => {
-    if (skyTextureCache.texture) {
-      scene.background = skyTextureCache.texture;
-      return;
-    }
-
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+    scene.background = null;
+    gl.setClearColor(0x02040a, 0);
 
     let cancelled = false;
-
-    const loadSky = async () => {
-      const phone = isPhoneDevice();
-      const maxSize = Math.min(
-        gl.capabilities.maxTextureSize,
-        skyTextureUploadSize(),
-      );
-
-      try {
-        let texture: THREE.Texture;
-        if (isMobileDevice()) {
-          const source = phone
-            ? await loadPhoneSkyImage(skyAssetUrl())
-            : await loadSkyImageResized(skyAssetUrl(), maxSize);
-          if (cancelled) {
-            if ("close" in source && typeof source.close === "function") {
-              source.close();
-            }
-            return;
-          }
-          texture = textureFromImageSource(source, maxSize);
-        } else {
-          texture = await new Promise<THREE.Texture>((resolve, reject) => {
-            new THREE.TextureLoader().load(
-              skyAssetUrl(),
-              resolve,
-              undefined,
-              reject,
-            );
-          });
-          if (cancelled) {
-            texture.dispose();
-            return;
-          }
-          fitTextureToGpuLimit(texture, maxSize);
-        }
-
-        if (cancelled) {
-          texture.dispose();
-          return;
-        }
-
-        applySkyTexture(scene, texture);
-      } catch {
-        /* solid color fallback from Canvas onCreated */
-      } finally {
-        loadingRef.current = false;
-      }
-    };
-
     const delay = isPhoneDevice() ? 900 : isIpadDevice() ? 500 : 0;
     const timer = window.setTimeout(() => {
-      void loadSky();
+      void loadSkyTexture(gl).then((texture) => {
+        if (cancelled || !texture) return;
+        applyMap(texture);
+      });
     }, delay);
 
-    const onResize = () => {
+    const refreshMap = () => {
       if (skyTextureCache.texture) {
-        scene.background = skyTextureCache.texture;
+        applyMap(skyTextureCache.texture);
       }
     };
-    window.addEventListener("resize", onResize);
+
+    const onContextRestore = () => {
+      void loadSkyTexture(gl).then((texture) => {
+        if (!texture) return;
+        applyMap(texture);
+      });
+    };
+
+    window.addEventListener("resize", refreshMap);
+    gl.domElement.addEventListener("webglcontextrestored", onContextRestore);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", refreshMap);
+      gl.domElement.removeEventListener("webglcontextrestored", onContextRestore);
     };
   }, [gl, scene]);
 
-  // Re-apply if another system (resize, R3F reconcile) clears scene.background.
   useFrame(() => {
-    if (
-      skyTextureCache.texture &&
-      scene.background !== skyTextureCache.texture
-    ) {
-      scene.background = skyTextureCache.texture;
+    if (meshRef.current) {
+      meshRef.current.position.copy(camera.position);
     }
   });
 
+  return (
+    <mesh ref={meshRef} frustumCulled={false} renderOrder={-1000}>
+      <sphereGeometry args={[SKY_RADIUS(), 48, 32]} />
+      <meshBasicMaterial
+        ref={materialRef}
+        map={map}
+        side={THREE.BackSide}
+        depthTest={false}
+        depthWrite={false}
+        toneMapped={false}
+        transparent={!map}
+        opacity={map ? 1 : 0}
+      />
+    </mesh>
+  );
+}
+
+/** Equirectangular scene.background — desktop only. */
+function SkySceneBackground() {
+  const { gl, scene } = useThree();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadSkyTexture(gl).then((texture) => {
+      if (cancelled || !texture) return;
+      scene.background = texture;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gl, scene]);
+
   return null;
+}
+
+export function SkyBackground() {
+  if (isMobileDevice()) {
+    return <SkySphere />;
+  }
+  return <SkySceneBackground />;
 }

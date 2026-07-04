@@ -49,8 +49,8 @@ function SceneContent({
         simDaysRef={simDaysRef}
         onTick={onSimDaysChange}
       />
-      <TextureWarmup />
       <SkyBackground />
+      <TextureWarmup />
       <CameraRig
         focusId={focusId}
         simDays={simDays}
@@ -79,10 +79,18 @@ export function SolarSystemScene({
   const far = godsViewDistance() * 24;
   const initialCamera = useMemo(() => focusCameraState(focusId, 0), [focusId]);
 
+  const mobile = isMobileDevice();
+
   return (
     <div ref={sceneRef} className="viewer-scene absolute inset-0">
+      {mobile && (
+        <div
+          className="viewer-sky-css pointer-events-none absolute inset-0"
+          aria-hidden
+        />
+      )}
       <Canvas
-        className="h-full w-full"
+        className="relative z-[1] h-full w-full"
         frameloop="always"
         camera={{
           position: [
@@ -96,12 +104,16 @@ export function SolarSystemScene({
         }}
         dpr={canvasDpr()}
         gl={{
-          antialias: !isMobileDevice(),
-          powerPreference: isMobileDevice() ? "default" : "high-performance",
+          alpha: mobile,
+          antialias: !mobile,
+          powerPreference: mobile ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
         onCreated={({ camera, gl, scene }) => {
-          scene.background = new THREE.Color("#02040a");
+          if (!mobile) {
+            scene.background = new THREE.Color("#02040a");
+          }
+          gl.setClearColor(0x02040a, mobile ? 0 : 1);
           camera.lookAt(
             initialCamera.target.x,
             initialCamera.target.y,
