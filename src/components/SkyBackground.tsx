@@ -39,18 +39,24 @@ export function SkyBackground() {
       }
     };
 
-    const delay = isPhoneDevice() ? 900 : isIpadDevice() ? 500 : 0;
+    // iPad: wait for planet textures (queued, one at a time) before uploading sky.
+    const delay = isPhoneDevice() ? 900 : isIpadDevice() ? 1400 : 0;
     const timer = window.setTimeout(() => {
       void loadSky();
     }, delay);
 
+    let resizeTimer = 0;
     const refreshBackground = () => {
       if (!skyTextureCache.texture) return;
       applySceneBackground(scene, skyTextureCache.texture);
-      skyTextureCache.texture.needsUpdate = true;
     };
 
-    window.addEventListener("resize", refreshBackground);
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(refreshBackground, 200);
+    };
+
+    window.addEventListener("resize", onResize);
 
     const onContextRestore = () => {
       void loadSkyTexture(gl).then((texture) => {
@@ -60,23 +66,12 @@ export function SkyBackground() {
     };
     gl.domElement.addEventListener("webglcontextrestored", onContextRestore);
 
-    // iPad pinch can drop scene.background — re-apply when the viewport settles.
-    const vv = window.visualViewport;
-    const onViewportChange = () => refreshBackground();
-    if (isIpadDevice() && vv) {
-      vv.addEventListener("resize", onViewportChange);
-      vv.addEventListener("scroll", onViewportChange);
-    }
-
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
-      window.removeEventListener("resize", refreshBackground);
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener("resize", onResize);
       gl.domElement.removeEventListener("webglcontextrestored", onContextRestore);
-      if (isIpadDevice() && vv) {
-        vv.removeEventListener("resize", onViewportChange);
-        vv.removeEventListener("scroll", onViewportChange);
-      }
     };
   }, [gl, scene]);
 

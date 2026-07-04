@@ -1,12 +1,14 @@
 import * as THREE from "three";
 
 import {
+  isIpadDevice,
   isMobileDevice,
   isPhoneDevice,
   skyTextureUploadSize,
 } from "@/lib/device-profile";
 import {
   fitTextureToGpuLimit,
+  loadIpadSkyImage,
   loadPhoneSkyImage,
   loadSkyImageResized,
   textureFromImageSource,
@@ -15,6 +17,7 @@ import { skyTextureCache } from "@/lib/sky-texture-cache";
 
 function skyAssetUrl(): string {
   if (isPhoneDevice()) return "/stars-phone.jpg?v=3";
+  if (isIpadDevice()) return "/stars-4k.jpg";
   return "/stars-8k.jpg";
 }
 
@@ -52,9 +55,12 @@ export async function loadSkyTexture(
   try {
     let texture: THREE.Texture;
     if (isMobileDevice()) {
+      const url = skyAssetUrl();
       const source = phone
-        ? await loadPhoneSkyImage(skyAssetUrl())
-        : await loadSkyImageResized(skyAssetUrl(), maxSize);
+        ? await loadPhoneSkyImage(url)
+        : isIpadDevice()
+          ? await loadIpadSkyImage(url, maxSize)
+          : await loadSkyImageResized(url, maxSize);
       texture = textureFromImageSource(source, maxSize);
     } else {
       texture = await new Promise<THREE.Texture>((resolve, reject) => {

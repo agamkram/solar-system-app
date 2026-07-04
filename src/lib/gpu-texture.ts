@@ -87,6 +87,24 @@ export async function loadSkyImageResized(
   }
 }
 
+/** iPad sky — 4k asset, resize-during-decode to avoid 8k RAM/GPU spikes. */
+export async function loadIpadSkyImage(
+  url: string,
+  maxSize: number,
+): Promise<ImageBitmap | HTMLCanvasElement> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+
+  try {
+    return await createImageBitmap(blob, {
+      resizeWidth: maxSize,
+      resizeQuality: "high",
+    });
+  } catch {
+    return loadImageViaCanvas(url, maxSize);
+  }
+}
+
 /** Phone sky is pre-sized to 4096 — decode at native resolution, no resize pass. */
 export async function loadPhoneSkyImage(
   url: string,
