@@ -275,3 +275,19 @@ export function rotationSpeedRadPerDay(rotationPeriodHours: number): number {
   const hours = Math.abs(rotationPeriodHours);
   return direction * (TAU / (hours / 24));
 }
+
+/**
+ * At simDays = 0 the texture had no spin offset, so subsolar sat near 79°E and
+ * the Americas faced night. Offset aligns ~105°W to the sun at epoch (US daytime).
+ * Derived from J2000 orbital elements + Three.js sphere UV mapping.
+ */
+const EARTH_SPIN_OFFSET_RAD = -3.208;
+
+export function spinAngleRad(
+  body: BodyDefinition,
+  simDays: number,
+): number {
+  const speed = rotationSpeedRadPerDay(body.rotationPeriodHours);
+  const offset = body.id === "earth" ? EARTH_SPIN_OFFSET_RAD : 0;
+  return offset + simDays * speed;
+}

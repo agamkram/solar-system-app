@@ -12,7 +12,7 @@ import {
   sphereSegments,
 } from "@/lib/device-profile";
 import { bodyRadiusScene } from "@/lib/scale";
-import { rotationSpeedRadPerDay } from "@/lib/orbits";
+import { spinAngleRad } from "@/lib/orbits";
 import { createSaturnRingGeometry } from "@/lib/saturn-ring-geometry";
 import { configureColorMap } from "@/lib/texture-config";
 import { loadTextureQueued } from "@/lib/texture-loader";
@@ -39,17 +39,16 @@ const PLACEHOLDER_COLORS: Record<string, string> = {
 
 function useBodyMotion(
   groupRef: React.RefObject<THREE.Group | null>,
-  bodyId: string,
+  body: BodyDefinition,
   simDaysRef: React.RefObject<number>,
-  spinSpeed: number,
 ) {
   useFrame(() => {
     if (!groupRef.current) return;
     const days = simDaysRef.current ?? 0;
-    const state = getBodyStates(days).get(bodyId);
+    const state = getBodyStates(days).get(body.id);
     if (!state) return;
     groupRef.current.position.copy(state.localPosition);
-    groupRef.current.rotation.y = days * spinSpeed;
+    groupRef.current.rotation.y = spinAngleRad(body, days);
   });
 }
 
@@ -107,12 +106,11 @@ interface BodyMeshVisualProps extends CelestialBodyMeshProps {
 function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
   const radius = bodyRadiusScene(body.radiusKm);
-  const spinSpeed = rotationSpeedRadPerDay(body.rotationPeriodHours);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
   const segments = sphereSegments(body.id, body.kind);
   const color = body.color ?? PLACEHOLDER_COLORS[body.id] ?? "#888888";
 
-  useBodyMotion(groupRef, body.id, simDaysRef, spinSpeed);
+  useBodyMotion(groupRef, body, simDaysRef);
 
   if (body.kind === "star") {
     return (
@@ -148,7 +146,6 @@ function CelestialBodyVisual({
   const groupRef = useRef<THREE.Group>(null);
   const { gl } = useThree();
   const radius = bodyRadiusScene(body.radiusKm);
-  const spinSpeed = rotationSpeedRadPerDay(body.rotationPeriodHours);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
   const segments = sphereSegments(body.id, body.kind);
   const placeholderColor =
@@ -185,7 +182,7 @@ function CelestialBodyVisual({
     };
   }, [ringGeometry]);
 
-  useBodyMotion(groupRef, body.id, simDaysRef, spinSpeed);
+  useBodyMotion(groupRef, body, simDaysRef);
 
   if (body.kind === "star") {
     return (
