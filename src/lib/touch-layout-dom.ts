@@ -16,6 +16,8 @@ function isPhoneWidth(): boolean {
   return window.matchMedia("(max-width: 767px)").matches;
 }
 
+let lastLayoutKey = "";
+
 export function applyTouchLayoutDOM(
   root: HTMLElement,
   scene: HTMLElement | null,
@@ -27,6 +29,10 @@ export function applyTouchLayoutDOM(
   const safeBottom = readSafeBottom();
   const screenH = window.innerHeight;
   const totalH = screenH + safeBottom;
+  const layoutKey = `${screenH}|${safeBottom}|${browserChromeBottom}|${window.innerWidth}`;
+  if (layoutKey === lastLayoutKey) return;
+  lastLayoutKey = layoutKey;
+
   const phone = isPhoneWidth();
   const dockPad = phone ? Math.max(4, safeBottom - 6) : Math.max(8, safeBottom);
 
@@ -67,8 +73,6 @@ export function applyTouchLayoutDOM(
   dock.style.paddingRight = "calc(0.75rem + env(safe-area-inset-right, 0px))";
   dock.style.paddingBottom = `${dockPad}px`;
   dock.style.margin = "0";
-
-  window.dispatchEvent(new Event("resize"));
 }
 
 export function clearTouchLayoutDOM(
@@ -76,6 +80,7 @@ export function clearTouchLayoutDOM(
   scene: HTMLElement | null,
   dock: HTMLElement,
 ): void {
+  lastLayoutKey = "";
   const clear = (el: HTMLElement) => {
     el.removeAttribute("style");
   };

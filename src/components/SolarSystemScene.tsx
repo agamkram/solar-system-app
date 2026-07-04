@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
+import * as THREE from "three";
 
 import { canvasDpr, isMobileDevice } from "@/lib/device-profile";
 import { focusCameraState } from "@/lib/focus-camera";
@@ -37,7 +38,6 @@ function SceneContent({
 }: SolarSystemSceneProps) {
   return (
     <>
-      <color attach="background" args={["#02040a"]} />
       <ambientLight intensity={0.35} />
       <hemisphereLight
         color="#9ec0ff"
@@ -100,7 +100,8 @@ export function SolarSystemScene({
           powerPreference: isMobileDevice() ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
-        onCreated={({ camera, gl }) => {
+        onCreated={({ camera, gl, scene }) => {
+          scene.background = new THREE.Color("#02040a");
           camera.lookAt(
             initialCamera.target.x,
             initialCamera.target.y,

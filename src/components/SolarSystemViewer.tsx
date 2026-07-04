@@ -77,14 +77,19 @@ export function SolarSystemViewer() {
 
     window.addEventListener("resize", syncLayout);
     mqPhone.addEventListener("change", syncLayout);
-    window.visualViewport?.addEventListener("resize", syncLayout);
-    window.visualViewport?.addEventListener("scroll", syncLayout);
+
+    // Only phone Safari needs visualViewport — pinch on iPad must not relayout.
+    const onViewportChange = () => syncLayout();
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      window.visualViewport?.addEventListener("resize", onViewportChange);
+      window.visualViewport?.addEventListener("scroll", onViewportChange);
+    }
 
     return () => {
       window.removeEventListener("resize", syncLayout);
       mqPhone.removeEventListener("change", syncLayout);
-      window.visualViewport?.removeEventListener("resize", syncLayout);
-      window.visualViewport?.removeEventListener("scroll", syncLayout);
+      window.visualViewport?.removeEventListener("resize", onViewportChange);
+      window.visualViewport?.removeEventListener("scroll", onViewportChange);
     };
   }, [syncLayout]);
 

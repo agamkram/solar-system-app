@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useThree } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import {
@@ -16,20 +16,42 @@ import {
   loadSkyImageResized,
   textureFromImageSource,
 } from "@/lib/gpu-texture";
+import { skyTextureCache } from "@/lib/sky-texture-cache";
 
 function skyAssetUrl(): string {
   if (isPhoneDevice()) return "/stars-phone.jpg?v=3";
   return "/stars-8k.jpg";
 }
 
+function applySkyTexture(scene: THREE.Scene, texture: THREE.Texture): void {
+  texture.flipY = true;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.anisotropy = 1;
+  texture.needsUpdate = true;
+  skyTextureCache.texture = texture;
+  scene.background = texture;
+}
+
 export function SkyBackground() {
   const { gl, scene } = useThree();
+  const loadingRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    let texture: THREE.Texture | null = null;
+    if (skyTextureCache.texture) {
+      scene.background = skyTextureCache.texture;
+      return;
+    }
 
-    const applySky = async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
+    let cancelled = false;
+
+    const loadSky = async () => {
       const phone = isPhoneDevice();
       const maxSize = Math.min(
         gl.capabilities.maxTextureSize,
@@ -37,6 +59,7 @@ export function SkyBackground() {
       );
 
       try {
+        let texture: THREE.Texture;
         if (isMobileDevice()) {
           const source = phone
             ? await loadPhoneSkyImage(skyAssetUrl())
@@ -64,32 +87,47 @@ export function SkyBackground() {
           fitTextureToGpuLimit(texture, maxSize);
         }
 
-        texture.flipY = true;
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.generateMipmaps = false;
-        texture.anisotropy = 1;
-        texture.needsUpdate = true;
-        scene.background = texture;
+        if (cancelled) {
+          texture.dispose();
+          return;
+        }
+
+        applySkyTexture(scene, texture);
       } catch {
-        /* keep solid background on failure */
+        /* solid color fallback from Canvas onCreated */
+      } finally {
+        loadingRef.current = false;
       }
     };
 
     const delay = isPhoneDevice() ? 900 : isIpadDevice() ? 500 : 0;
     const timer = window.setTimeout(() => {
-      void applySky();
+      void loadSky();
     }, delay);
+
+    const onResize = () => {
+      if (skyTextureCache.texture) {
+        scene.background = skyTextureCache.texture;
+      }
+    };
+    window.addEventListener("resize", onResize);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
-      scene.background = null;
-      texture?.dispose();
+      window.removeEventListener("resize", onResize);
     };
   }, [gl, scene]);
+
+  // Re-apply if another system (resize, R3F reconcile) clears scene.background.
+  useFrame(() => {
+    if (
+      skyTextureCache.texture &&
+      scene.background !== skyTextureCache.texture
+    ) {
+      scene.background = skyTextureCache.texture;
+    }
+  });
 
   return null;
 }
