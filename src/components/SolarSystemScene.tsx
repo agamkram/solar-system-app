@@ -63,7 +63,9 @@ function SceneContent({
         trailDissolve={trailDissolve}
         traceResetKey={traceResetKey}
       />
-      <OrbitLinesOverlay focusId={focusId} simDaysRef={simDaysRef} />
+      {!epicycleTracing && (
+        <OrbitLinesOverlay focusId={focusId} simDaysRef={simDaysRef} />
+      )}
     </>
   );
 }
