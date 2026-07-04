@@ -185,9 +185,10 @@ html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
   bottom: var(--browser-chrome-bottom, 0px);
 }
 
-/* Desktop: planet picker at bottom */
+/* Desktop: planet picker pinned to bottom (sibling of overlay) */
 @media (pointer: fine) {
   .viewer-root {
+    height: 100dvh;
     overflow: hidden;
   }
 
@@ -196,11 +197,13 @@ html.phone-browser:not(.pwa-standalone) .viewer-orb-dock {
   }
 
   .viewer-orb-dock {
-    position: static;
-    margin-top: auto;
-    padding-left: 0;
-    padding-right: 0;
-    padding-bottom: 0;
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 3;
+    padding: 0;
+    margin: 0;
   }
 
   .time-controls-card {
