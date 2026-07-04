@@ -25,7 +25,7 @@ const MAX_TRAIL_POINTS = isMobileDevice() ? 3_500 : 6_000;
 /** Max sim-days between recorded trail samples — keeps curves smooth at high speed. */
 const MAX_DAYS_PER_SAMPLE = 0.35;
 const MAX_SAMPLES_PER_FRAME = isMobileDevice() ? 120 : 220;
-const TRAIL_LINE_WIDTH = 1;
+const TRAIL_LINE_WIDTH = 0.8;
 const TRAIL_OPACITY = 0.9;
 
 const PROJ = new THREE.Vector3();
