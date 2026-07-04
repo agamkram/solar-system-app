@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics/next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -54,7 +54,13 @@ export default function RootLayout({
       </head>
       <body className="h-full overflow-hidden bg-[#02040a] font-sans text-white">
         {children}
-        <Analytics />
+        <Script id="vercel-analytics-init" strategy="afterInteractive">
+          {`window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };`}
+        </Script>
+        <Script
+          src="/_vercel/insights/script.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
