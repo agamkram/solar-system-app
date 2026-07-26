@@ -1,0 +1,89 @@
+import * as THREE from "three";
+
+import {
+  isMobileDevice,
+  maxConcurrentTextureLoads,
+  maxTextureUploadSize,
+} from "./device-profile";
+import { configureColorMap } from "./texture-config";
+import {
+  fitTextureToGpuLimit,
+  loadImageResized,
+  textureFromImageSource,
+} from "./gpu-texture";
+
+interface QueueJob {
+  url: string;
+  gl: THREE.WebGLRenderer;
+  resolve: (texture: THREE.Texture) => void;
+  reject: (error: unknown) => void;
+}
+
+const textureCache = new Map<string, Promise<THREE.Texture>>();
+const queue: QueueJob[] = [];
+let activeLoads = 0;
+
+function pumpQueue() {
+  while (activeLoads < maxConcurrentTextureLoads() && queue.length > 0) {
+    const job = queue.shift();
+    if (!job) break;
+
+    activeLoads += 1;
+    loadTextureImmediate(job.url, job.gl)
+      .then(job.resolve)
+      .catch(job.reject)
+      .finally(() => {
+        activeLoads -= 1;
+        pumpQueue();
+      });
+  }
+}
+
+async function loadTextureImmediate(
+  url: string,
+  gl: THREE.WebGLRenderer,
+): Promise<THREE.Texture> {
+  const maxSize = Math.min(maxTextureUploadSize(), gl.capabilities.maxTextureSize);
+
+  if (isMobileDevice()) {
+    const source = await loadImageResized(url, maxSize);
+    const texture = textureFromImageSource(source, maxSize);
+    configureColorMap(texture, gl);
+    return texture;
+  }
+
+  return new Promise((resolve, reject) => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      url,
+      (texture) => {
+        fitTextureToGpuLimit(texture, maxSize);
+        configureColorMap(texture, gl);
+        resolve(texture);
+      },
+      undefined,
+      reject,
+    );
+  });
+}
+
+/** Queued loads — one at a time on mobile; resized before GPU upload. */
+export function loadTextureQueued(
+  url: string,
+  gl: THREE.WebGLRenderer,
+): Promise<THREE.Texture> {
+  const cached = textureCache.get(url);
+  if (cached) return cached;
+
+  const promise = new Promise<THREE.Texture>((resolve, reject) => {
+    queue.push({ url, gl, resolve, reject });
+    pumpQueue();
+  });
+
+  promise.catch(() => {
+    textureCache.delete(url);
+  });
+
+  textureCache.set(url, promise);
+  return promise;
+}
