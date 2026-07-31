@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Solar System",
+  title: "SolarSystem",
   description:
     "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
   manifest: "/manifest.webmanifest",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Mark Maga",
-    title: "Solar System",
+    title: "SolarSystem",
     description:
       "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
     url: "https://solarsystem.markmaga.com/",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Solar System",
+    title: "SolarSystem",
     description:
       "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
     images: ["/icon-512.png"],
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Solar System",
+    title: "SolarSystem",
   },
   icons: {
     icon: [

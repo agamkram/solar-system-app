@@ -1,6 +1,6 @@
 {
-  "name": "Solar System",
-  "short_name": "Solar System",
+  "name": "SolarSystem",
+  "short_name": "SolarSystem",
   "description": "Interactive 3D solar system with God's view, orbits, and Pluto.",
   "start_url": "/",
   "display": "standalone",
