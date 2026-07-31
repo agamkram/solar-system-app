@@ -18,13 +18,34 @@ export const metadata: Metadata = {
   description:
     "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
   manifest: "/manifest.webmanifest",
+  metadataBase: new URL("https://solarsystem.markmaga.com"),
+  openGraph: {
+    type: "website",
+    siteName: "Mark Maga",
+    title: "Solar System",
+    description:
+      "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
+    url: "https://solarsystem.markmaga.com/",
+    images: [{ url: "/icon-512.png", width: 512, height: 512 }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Solar System",
+    description:
+      "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
+    images: ["/icon-512.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Solar System",
   },
   icons: {
-    icon: "/apple-touch-icon.png",
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
     apple: "/apple-touch-icon.png",
   },
 };
