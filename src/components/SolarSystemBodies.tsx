@@ -7,22 +7,15 @@ import * as THREE from "three";
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES } from "@/lib/bodies";
 import { CelestialBodyMesh } from "./CelestialBodyMesh";
-import { EpicycleTrails } from "./EpicycleTrails";
 
 interface SolarSystemBodiesProps {
   simDaysRef: React.RefObject<number>;
   focusId: string;
-  epicycleTracing: boolean;
-  trailDissolve: boolean;
-  traceResetKey: number;
 }
 
 export function SolarSystemBodies({
   simDaysRef,
   focusId,
-  epicycleTracing,
-  trailDissolve,
-  traceResetKey,
 }: SolarSystemBodiesProps) {
   const systemRef = useRef<THREE.Group>(null);
 
@@ -34,27 +27,15 @@ export function SolarSystemBodies({
   });
 
   return (
-    <>
-      <group ref={systemRef}>
-        {BODIES.map((body) => (
-          <CelestialBodyMesh
-            key={body.id}
-            body={body}
-            focusId={focusId}
-            simDaysRef={simDaysRef}
-          />
-        ))}
-      </group>
-
-      {epicycleTracing && (
-        <EpicycleTrails
+    <group ref={systemRef}>
+      {BODIES.map((body) => (
+        <CelestialBodyMesh
+          key={body.id}
+          body={body}
           focusId={focusId}
           simDaysRef={simDaysRef}
-          tracing={epicycleTracing}
-          dissolve={trailDissolve}
-          traceResetKey={traceResetKey}
         />
-      )}
-    </>
+      ))}
+    </group>
   );
 }

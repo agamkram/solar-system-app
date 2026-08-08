@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
 import {
@@ -99,8 +106,25 @@ export function SolarSystemViewer() {
     setTraceResetKey((k) => k + 1);
   }, []);
 
+  // Portal title to <body> so it is not trapped under the WebGL stack.
+  const [titleReady, setTitleReady] = useState(false);
+  useEffect(() => {
+    setTitleReady(true);
+  }, []);
+
+  const titleChrome =
+    titleReady &&
+    createPortal(
+      <header className="app-chrome" aria-label="SolarSystem">
+        <h1 className="app-title">SolarSystem</h1>
+      </header>,
+      document.body,
+    );
+
   return (
     <div ref={rootRef} className="viewer-root relative w-full bg-[#02040a]">
+      {titleChrome}
+
       <SolarSystemScene
         sceneRef={sceneRef}
         focusId={focusId}
@@ -113,48 +137,10 @@ export function SolarSystemViewer() {
         onSimDaysChange={setSimDays}
       />
 
-      <div className="viewer-ui-overlay pointer-events-none absolute inset-0 flex flex-col">
-        <header className="pointer-events-none flex items-start justify-between gap-3">
-          <TimeControls
-            simDays={simDays}
-            speedIndex={speedIndex}
-            onSpeedIndexChange={setSpeedIndex}
-            onNow={handleNow}
-          />
-          <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-1.5">
-            <button
-              type="button"
-              onClick={handleEpicycleTracing}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                epicycleTracing
-                  ? "border-amber-300/70 bg-amber-400/15 text-amber-100"
-                  : "border-white/15 bg-black/35 text-white/80 hover:border-white/30"
-              }`}
-            >
-              Trace Epicycles
-            </button>
-            <button
-              type="button"
-              onClick={() => setTrailDissolve((on) => !on)}
-              disabled={!epicycleTracing}
-              aria-pressed={epicycleTracing && trailDissolve}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:border-white/15 disabled:bg-black/35 disabled:text-white/50 ${
-                epicycleTracing && trailDissolve
-                  ? "border-violet-300/70 bg-violet-400/15 text-violet-100"
-                  : "border-white/15 bg-black/35 text-white/80 hover:border-white/30"
-              }`}
-            >
-              Dissolve
-            </button>
-          </div>
-        </header>
-      </div>
-
-      <div
-        ref={dockRef}
-        className="viewer-orb-dock pointer-events-auto flex w-full justify-start"
-      >
-        <div className="orb-picker-panel w-full rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
+      <div ref={dockRef} className="viewer-orb-dock">
+        {/* DOM order = Mac/iPad row order: planets left, time right.
+            Phone uses column-reverse so time stays above planets. */}
+        <div className="orb-picker-panel pointer-events-auto rounded-xl border border-white/10 bg-black/45 backdrop-blur-md">
           <div className="orb-picker">
             {PICKER_BODIES.map((body) => {
               const active = focusId === body.id;
@@ -175,6 +161,17 @@ export function SolarSystemViewer() {
             })}
           </div>
         </div>
+
+        <TimeControls
+          simDays={simDays}
+          speedIndex={speedIndex}
+          onSpeedIndexChange={setSpeedIndex}
+          onNow={handleNow}
+          epicycleTracing={epicycleTracing}
+          trailDissolve={trailDissolve}
+          onEpicycleTracing={handleEpicycleTracing}
+          onTrailDissolve={() => setTrailDissolve((on) => !on)}
+        />
       </div>
     </div>
   );

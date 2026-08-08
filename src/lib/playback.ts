@@ -18,7 +18,8 @@ export const SPEED_OPTIONS = [
 
 export function formatSimDate(simDays: number): string {
   const ms = SIM_EPOCH.getTime() + simDays * DAY_MS;
-  return new Date(ms).toLocaleDateString(undefined, {
+  // Fixed locale so SSR HTML matches every client (avoids hydration mismatch).
+  return new Date(ms).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

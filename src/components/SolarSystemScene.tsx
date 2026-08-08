@@ -8,10 +8,11 @@ import { canvasDpr, isMobileDevice } from "@/lib/device-profile";
 import { focusCameraState } from "@/lib/focus-camera";
 import { godsViewDistance } from "@/lib/scale";
 import { CameraRig } from "./CameraRig";
-import { OrbitLinesOverlay } from "./OrbitLinesOverlay";
+import { EpicycleTrails } from "./EpicycleTrails";
+import { OrbitLines } from "./OrbitLines";
 import { SceneClock } from "./SceneClock";
 import { SolarSystemBodies } from "./SolarSystemBodies";
-import { SkyBackground } from "./SkyBackground";
+import { Starfield } from "./Starfield";
 import { TextureWarmup } from "./TextureWarmup";
 
 interface SolarSystemSceneProps {
@@ -38,6 +39,7 @@ function SceneContent({
 }: SolarSystemSceneProps) {
   return (
     <>
+      <color attach="background" args={["#02040a"]} />
       <ambientLight intensity={0.35} />
       <hemisphereLight
         color="#9ec0ff"
@@ -49,22 +51,26 @@ function SceneContent({
         simDaysRef={simDaysRef}
         onTick={onSimDaysChange}
       />
-      <SkyBackground />
+      <Starfield />
       <TextureWarmup />
       <CameraRig
         focusId={focusId}
         simDays={simDays}
         simDaysRef={simDaysRef}
       />
-      <SolarSystemBodies
-        simDaysRef={simDaysRef}
-        focusId={focusId}
-        epicycleTracing={epicycleTracing}
-        trailDissolve={trailDissolve}
-        traceResetKey={traceResetKey}
-      />
+      <SolarSystemBodies simDaysRef={simDaysRef} focusId={focusId} />
+      {/* Lines live in WebGL with the planets — no DOM canvas overlays */}
       {!epicycleTracing && (
-        <OrbitLinesOverlay focusId={focusId} simDaysRef={simDaysRef} />
+        <OrbitLines focusId={focusId} simDaysRef={simDaysRef} />
+      )}
+      {epicycleTracing && (
+        <EpicycleTrails
+          focusId={focusId}
+          simDaysRef={simDaysRef}
+          tracing={epicycleTracing}
+          dissolve={trailDissolve}
+          traceResetKey={traceResetKey}
+        />
       )}
     </>
   );
@@ -78,14 +84,11 @@ export function SolarSystemScene({
 }: SolarSystemSceneProps) {
   const far = godsViewDistance() * 24;
   const initialCamera = useMemo(() => focusCameraState(focusId, 0), [focusId]);
-
-  const mobile = isMobileDevice();
+  // Client-only; "use client" component — fine for gl options.
+  const mobile = typeof window !== "undefined" ? isMobileDevice() : false;
 
   return (
-    <div
-      ref={sceneRef}
-      className={`viewer-scene absolute inset-0${mobile ? " viewer-scene--touch" : ""}`}
-    >
+    <div ref={sceneRef} className="viewer-scene absolute inset-0 bg-[#02040a]">
       <Canvas
         className="h-full w-full"
         frameloop="always"
@@ -105,8 +108,7 @@ export function SolarSystemScene({
           powerPreference: mobile ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
-        onCreated={({ camera, gl, scene }) => {
-          scene.background = new THREE.Color("#02040a");
+        onCreated={({ camera, gl }) => {
           gl.setClearColor(0x02040a, 1);
           camera.lookAt(
             initialCamera.target.x,

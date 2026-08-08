@@ -52,7 +52,8 @@ export function applyTouchLayoutDOM(
   root.style.minHeight = `${screenH}px`;
   root.style.overflow = "hidden";
   root.style.background = "#02040a";
-  root.style.zIndex = "0";
+  // Keep app shell under portaled title (z-index 100000), above page chrome only.
+  root.style.zIndex = "1";
 
   if (scene) {
     scene.style.position = "absolute";
@@ -67,12 +68,34 @@ export function applyTouchLayoutDOM(
   dock.style.position = "fixed";
   dock.style.left = "0";
   dock.style.right = "0";
+  // Safari iPad: left+right with width:auto shrink-wraps to content — force full bleed.
+  dock.style.width = "100%";
+  dock.style.boxSizing = "border-box";
   dock.style.bottom = `${browserChromeBottom}px`;
+  dock.style.top = "auto";
+  dock.style.height = "auto";
   dock.style.zIndex = "20";
+  dock.style.margin = "0";
+  dock.style.pointerEvents = "none";
   dock.style.paddingLeft = "calc(0.75rem + env(safe-area-inset-left, 0px))";
   dock.style.paddingRight = "calc(0.75rem + env(safe-area-inset-right, 0px))";
   dock.style.paddingBottom = `${dockPad}px`;
-  dock.style.margin = "0";
+
+  // Phone: column-reverse (time above planets). iPad: equal-width grid columns.
+  if (phone) {
+    dock.style.display = "flex";
+    dock.style.flexDirection = "column-reverse";
+    dock.style.alignItems = "stretch";
+    dock.style.gap = "0.3rem";
+    dock.style.removeProperty("grid-template-columns");
+  } else {
+    dock.style.display = "grid";
+    dock.style.gridTemplateColumns = "minmax(0, 1fr) minmax(0, 1fr)";
+    dock.style.alignItems = "stretch";
+    dock.style.gap = "0.5rem";
+    dock.style.removeProperty("flex-direction");
+    dock.style.removeProperty("flex-wrap");
+  }
 }
 
 export function clearTouchLayoutDOM(

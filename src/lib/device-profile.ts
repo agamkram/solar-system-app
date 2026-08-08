@@ -58,13 +58,6 @@ export function maxTextureUploadSize(): number {
   return 8192;
 }
 
-export function skyTextureUploadSize(): number {
-  if (isPhoneDevice()) return 4096;
-  // 8k sky OOMs iPad WebGL — 4k asset capped at 4096 is stable.
-  if (isIpadDevice()) return 4096;
-  return 8192;
-}
-
 export function useTextureMipmaps(): boolean {
   return !isPhoneDevice();
 }

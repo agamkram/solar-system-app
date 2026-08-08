@@ -196,7 +196,9 @@ function CelestialBodyVisual({
     );
   }
 
-  const useProceduralAtmosphere = body.id === "earth";
+  // Soft blue shell only on larger screens — on phone it muddies the 1k texture.
+  const useProceduralAtmosphere =
+    body.id === "earth" && !isPhoneDevice();
 
   return (
     <group ref={groupRef}>
@@ -212,7 +214,15 @@ function CelestialBodyVisual({
                   : "#ffffff"
                 : placeholderColor
             }
-            shininess={body.id === "earth" ? 12 : 8}
+            // Phone: less specular wash so the map stays clear
+            shininess={
+              body.id === "earth" ? (isPhoneDevice() ? 4 : 12) : 8
+            }
+            specular={
+              body.id === "earth" && isPhoneDevice()
+                ? new THREE.Color(0x222222)
+                : new THREE.Color(0x111111)
+            }
           />
         </mesh>
 
@@ -222,7 +232,7 @@ function CelestialBodyVisual({
             <meshBasicMaterial
               color="#7eb8ff"
               transparent
-              opacity={0.14}
+              opacity={0.1}
               depthWrite={false}
             />
           </mesh>

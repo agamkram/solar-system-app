@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  
   devIndicators: false,
   // Safe cache: long-lived textures, short icon cache, always revalidate HTML/JS.
   headers: async () => [
