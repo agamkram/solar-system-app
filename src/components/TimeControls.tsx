@@ -24,7 +24,11 @@ export function TimeControls({
   onTrailDissolve,
 }: TimeControlsProps) {
   return (
-    <div className="time-controls-card pointer-events-auto flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/50 px-1.5 py-0.5 backdrop-blur-md">
+    <div
+      className="time-controls-card pointer-events-auto flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/50 px-1.5 py-0.5 backdrop-blur-md"
+      onPointerDown={(event) => event.stopPropagation()}
+      onTouchStart={(event) => event.stopPropagation()}
+    >
       <div className="time-controls-main">
         <p className="truncate text-[9px] font-medium leading-tight tabular-nums text-white/90">
           {formatSimDate(simDays)}
@@ -44,6 +48,18 @@ export function TimeControls({
             step={1}
             value={speedIndex}
             onChange={(event) => onSpeedIndexChange(Number(event.target.value))}
+            onPointerDown={(event) => {
+              // Keep the drag on the thumb; don't let it become a scene/page pan.
+              event.stopPropagation();
+              try {
+                event.currentTarget.setPointerCapture(event.pointerId);
+              } catch {
+                /* older Safari */
+              }
+            }}
+            onTouchStart={(event) => {
+              event.stopPropagation();
+            }}
             className="time-speed-slider time-controls-slider cursor-pointer appearance-none rounded-full accent-sky-400"
             aria-label="Simulation speed"
           />
