@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
 
-import { canvasDpr, isMobileDevice } from "@/lib/device-profile";
+import { canvasDpr, isPhoneDevice } from "@/lib/device-profile";
 import { focusCameraState } from "@/lib/focus-camera";
 import { godsViewDistance } from "@/lib/scale";
 import { CameraRig } from "./CameraRig";
@@ -14,6 +13,7 @@ import { SceneClock } from "./SceneClock";
 import { SolarSystemBodies } from "./SolarSystemBodies";
 import { Starfield } from "./Starfield";
 import { TextureWarmup } from "./TextureWarmup";
+import type { TrailColorMode } from "@/lib/trail-colors";
 
 interface SolarSystemSceneProps {
   sceneRef?: React.RefObject<HTMLDivElement | null>;
@@ -21,6 +21,7 @@ interface SolarSystemSceneProps {
   simDays: number;
   epicycleTracing: boolean;
   trailDissolve: boolean;
+  trailColorMode: TrailColorMode;
   traceResetKey: number;
   simDaysRef: React.RefObject<number>;
   speedDaysPerSecondRef: React.RefObject<number>;
@@ -32,6 +33,7 @@ function SceneContent({
   simDays,
   epicycleTracing,
   trailDissolve,
+  trailColorMode,
   traceResetKey,
   simDaysRef,
   speedDaysPerSecondRef,
@@ -57,6 +59,7 @@ function SceneContent({
         focusId={focusId}
         simDays={simDays}
         simDaysRef={simDaysRef}
+        epicycleTracing={epicycleTracing}
       />
       <SolarSystemBodies simDaysRef={simDaysRef} focusId={focusId} />
       {/* Lines live in WebGL with the planets — no DOM canvas overlays */}
@@ -69,6 +72,7 @@ function SceneContent({
           simDaysRef={simDaysRef}
           tracing={epicycleTracing}
           dissolve={trailDissolve}
+          colorMode={trailColorMode}
           traceResetKey={traceResetKey}
         />
       )}
@@ -85,7 +89,7 @@ export function SolarSystemScene({
   const far = godsViewDistance() * 24;
   const initialCamera = useMemo(() => focusCameraState(focusId, 0), [focusId]);
   // Client-only; "use client" component — fine for gl options.
-  const mobile = typeof window !== "undefined" ? isMobileDevice() : false;
+  const phone = typeof window !== "undefined" ? isPhoneDevice() : false;
 
   return (
     <div ref={sceneRef} className="viewer-scene absolute inset-0 bg-[#02040a]">
@@ -104,8 +108,8 @@ export function SolarSystemScene({
         }}
         dpr={canvasDpr()}
         gl={{
-          antialias: !mobile,
-          powerPreference: mobile ? "default" : "high-performance",
+          antialias: !phone,
+          powerPreference: phone ? "default" : "high-performance",
         }}
         style={{ touchAction: "none" }}
         onCreated={({ camera, gl }) => {

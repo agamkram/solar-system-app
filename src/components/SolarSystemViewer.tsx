@@ -11,10 +11,15 @@ import { createPortal } from "react-dom";
 
 import { DEFAULT_FOCUS_ID, PICKER_BODIES } from "@/lib/bodies";
 import {
-  applyTouchLayoutDOM,
-  clearTouchLayoutDOM,
+  clearInlineLayoutStyles,
+  syncPwaFillHeight,
 } from "@/lib/touch-layout-dom";
 import { speedIndexToDaysPerSecond } from "@/lib/playback";
+import {
+  nextTrailColorMode,
+  TRAIL_COLOR_MODE_LABEL,
+  type TrailColorMode,
+} from "@/lib/trail-colors";
 import { SolarSystemScene } from "./SolarSystemScene";
 import { TimeControls } from "./TimeControls";
 
@@ -24,6 +29,8 @@ export function SolarSystemViewer() {
   const [simDays, setSimDays] = useState(0);
   const [epicycleTracing, setEpicycleTracing] = useState(false);
   const [trailDissolve, setTrailDissolve] = useState(false);
+  const [trailColorMode, setTrailColorMode] =
+    useState<TrailColorMode>("color");
   const [traceResetKey, setTraceResetKey] = useState(0);
 
   const simDaysRef = useRef(0);
@@ -46,57 +53,36 @@ export function SolarSystemViewer() {
   }, [epicycleTracing]);
 
   const syncLayout = useCallback(() => {
-    const mqPhone = window.matchMedia("(max-width: 767px)");
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator &&
-        (navigator as Navigator & { standalone?: boolean }).standalone);
-    const phone = mqPhone.matches;
-    const phoneBrowser = phone && !standalone;
-    const vv = window.visualViewport;
-    const browserChromeBottom =
-      phoneBrowser && vv
-        ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-        : 0;
-
-    document.documentElement.classList.toggle("pwa-standalone", standalone);
-    document.documentElement.classList.toggle("pwa-phone", standalone && phone);
-    document.documentElement.classList.toggle("phone-browser", phoneBrowser);
-
-    const touch = window.matchMedia("(pointer: coarse)").matches;
-    const root = rootRef.current;
-    const scene = sceneRef.current;
-    const dock = dockRef.current;
-
-    if (touch && root && dock) {
-      applyTouchLayoutDOM(root, scene, dock, browserChromeBottom);
-    } else if (root && dock) {
-      clearTouchLayoutDOM(root, scene, dock);
-    }
+    syncPwaFillHeight();
   }, []);
 
   useLayoutEffect(() => {
+    const root = rootRef.current;
+    const scene = sceneRef.current;
+    const dock = dockRef.current;
+    if (root && dock) {
+      clearInlineLayoutStyles(root, scene, dock);
+    }
     syncLayout();
   }, [syncLayout]);
 
   useEffect(() => {
-    const mqPhone = window.matchMedia("(max-width: 767px)");
+    const onResize = () => syncLayout();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("pageshow", onResize);
+    window.addEventListener("orientationchange", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
 
-    window.addEventListener("resize", syncLayout);
-    mqPhone.addEventListener("change", syncLayout);
-
-    // Only phone Safari needs visualViewport — pinch on iPad must not relayout.
-    const onViewportChange = () => syncLayout();
-    if (window.matchMedia("(max-width: 767px)").matches) {
-      window.visualViewport?.addEventListener("resize", onViewportChange);
-      window.visualViewport?.addEventListener("scroll", onViewportChange);
-    }
+    const later = window.setTimeout(onResize, 100);
+    const later2 = window.setTimeout(onResize, 400);
 
     return () => {
-      window.removeEventListener("resize", syncLayout);
-      mqPhone.removeEventListener("change", syncLayout);
-      window.visualViewport?.removeEventListener("resize", onViewportChange);
-      window.visualViewport?.removeEventListener("scroll", onViewportChange);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pageshow", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+      window.clearTimeout(later);
+      window.clearTimeout(later2);
     };
   }, [syncLayout]);
 
@@ -105,6 +91,12 @@ export function SolarSystemViewer() {
     setSimDays(0);
     setTraceResetKey((k) => k + 1);
   }, []);
+
+  const focusIndex = Math.max(
+    0,
+    PICKER_BODIES.findIndex((body) => body.id === focusId),
+  );
+  const focusName = PICKER_BODIES[focusIndex]?.name ?? focusId;
 
   // Portal title to <body> so it is not trapped under the WebGL stack.
   const [titleReady, setTitleReady] = useState(false);
@@ -122,7 +114,7 @@ export function SolarSystemViewer() {
     );
 
   return (
-    <div ref={rootRef} className="viewer-root relative w-full bg-[#02040a]">
+    <div ref={rootRef} className="viewer-root bg-[#02040a]">
       {titleChrome}
 
       <SolarSystemScene
@@ -131,6 +123,7 @@ export function SolarSystemViewer() {
         simDays={simDays}
         epicycleTracing={epicycleTracing}
         trailDissolve={trailDissolve}
+        trailColorMode={trailColorMode}
         traceResetKey={traceResetKey}
         simDaysRef={simDaysRef}
         speedDaysPerSecondRef={speedDaysPerSecondRef}
@@ -140,25 +133,44 @@ export function SolarSystemViewer() {
       <div ref={dockRef} className="viewer-orb-dock">
         {/* DOM order = Mac/iPad row order: planets left, time right.
             Phone uses column-reverse so time stays above planets. */}
-        <div className="orb-picker-panel pointer-events-auto rounded-xl border border-white/10 bg-black/45 backdrop-blur-md">
+        <div className="orb-picker-panel pointer-events-auto rounded-xl border border-white/10 bg-black/50 backdrop-blur-md">
           <div className="orb-picker">
-            {PICKER_BODIES.map((body) => {
-              const active = focusId === body.id;
-              return (
-                <button
-                  key={body.id}
-                  type="button"
-                  onClick={() => handleFocus(body.id)}
-                  className={`orb-btn rounded-full font-medium transition ${
-                    active
-                      ? "bg-sky-400/20 text-sky-100 ring-1 ring-sky-300/50"
-                      : "bg-white/5 text-white/75 hover:bg-white/10"
-                  }`}
-                >
-                  {body.name}
-                </button>
-              );
-            })}
+            <p className="orb-picker-name">{focusName}</p>
+            <input
+              type="range"
+              min={0}
+              max={PICKER_BODIES.length - 1}
+              step={1}
+              value={focusIndex}
+              onChange={(event) => {
+                const next = PICKER_BODIES[Number(event.target.value)];
+                if (next) handleFocus(next.id);
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                try {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                } catch {
+                  /* older Safari */
+                }
+              }}
+              onTouchStart={(event) => {
+                event.stopPropagation();
+              }}
+              className="time-speed-slider dock-slider orb-picker-slider cursor-pointer appearance-none rounded-full accent-sky-400"
+              aria-label="Focus body"
+              aria-valuetext={focusName}
+            />
+            <button
+              type="button"
+              onClick={() => setTrailColorMode(nextTrailColorMode)}
+              onPointerDown={(event) => event.stopPropagation()}
+              onTouchStart={(event) => event.stopPropagation()}
+              className="orb-picker-tone"
+              aria-label={`Trail colors: ${TRAIL_COLOR_MODE_LABEL[trailColorMode]}. Tap to change.`}
+            >
+              {TRAIL_COLOR_MODE_LABEL[trailColorMode]}
+            </button>
           </div>
         </div>
 

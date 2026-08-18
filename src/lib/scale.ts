@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import type { BodyDefinition } from "./bodies";
 
-export const FOCUS_ARRIVAL_DISTANCE_MULTIPLIER = 2;
+export const FOCUS_ARRIVAL_DISTANCE_MULTIPLIER = 5;
 
 const AU_IN_MILLION_KM = 149.5978707;
 

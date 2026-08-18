@@ -60,7 +60,7 @@ export function TimeControls({
             onTouchStart={(event) => {
               event.stopPropagation();
             }}
-            className="time-speed-slider time-controls-slider cursor-pointer appearance-none rounded-full accent-sky-400"
+            className="time-speed-slider dock-slider cursor-pointer appearance-none rounded-full accent-sky-400"
             aria-label="Simulation speed"
           />
         </div>

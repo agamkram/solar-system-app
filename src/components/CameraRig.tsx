@@ -6,7 +6,6 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
-import { getBodyStates } from "@/lib/body-states-cache";
 import { BODY_BY_ID } from "@/lib/bodies";
 import { focusCameraState } from "@/lib/focus-camera";
 import { focusMinDistance, godsViewDistance } from "@/lib/scale";
@@ -15,15 +14,61 @@ interface CameraRigProps {
   focusId: string;
   simDays: number;
   simDaysRef: React.RefObject<number>;
+  epicycleTracing: boolean;
 }
 
-export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
+/** Shift the film so the focus sits between the title and the dock, not the full window. */
+function stageFilmOffsetY(
+  canvas: HTMLCanvasElement,
+  viewHeight: number,
+): number {
+  const title = document.querySelector(".app-chrome");
+  const dock = document.querySelector(".viewer-orb-dock");
+  const canvasRect = canvas.getBoundingClientRect();
+  const titleBottom = title
+    ? title.getBoundingClientRect().bottom
+    : canvasRect.top;
+  const dockTop = dock ? dock.getBoundingClientRect().top : canvasRect.bottom;
+  if (!(dockTop > titleBottom + 8)) return 0;
+  const stageCenter = (titleBottom + dockTop) / 2;
+  const viewCenter = canvasRect.top + canvasRect.height / 2;
+  const raise = viewCenter - stageCenter;
+  if (!Number.isFinite(raise)) return 0;
+  return raise * (viewHeight / Math.max(1, canvasRect.height));
+}
+
+export function CameraRig({
+  focusId,
+  simDays,
+  simDaysRef,
+  epicycleTracing,
+}: CameraRigProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const { camera } = useThree();
+  const { camera, gl, size } = useThree();
   const fromPosition = useRef(new THREE.Vector3());
   const fromTarget = useRef(new THREE.Vector3());
   const transitionBlend = useRef(1);
   const focusInitialized = useRef(false);
+  const tracingRef = useRef(epicycleTracing);
+  const filmOffsetRef = useRef(0);
+  const fallbackTarget = useRef(new THREE.Vector3());
+
+  useLayoutEffect(() => {
+    tracingRef.current = epicycleTracing;
+  }, [epicycleTracing]);
+
+  useLayoutEffect(() => {
+    const update = () => {
+      filmOffsetRef.current = stageFilmOffsetY(gl.domElement, size.height);
+    };
+    update();
+    const later = window.setTimeout(update, 80);
+    const later2 = window.setTimeout(update, 400);
+    return () => {
+      window.clearTimeout(later);
+      window.clearTimeout(later2);
+    };
+  }, [gl.domElement, size.width, size.height]);
 
   useLayoutEffect(() => {
     const controls = controlsRef.current;
@@ -45,8 +90,14 @@ export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
       return;
     }
 
+    // Trace: picker only changes the reference frame. Keep the current view.
+    if (tracingRef.current) {
+      transitionBlend.current = 1;
+      return;
+    }
+
     fromPosition.current.copy(camera.position);
-    fromTarget.current.copy(controls?.target ?? new THREE.Vector3());
+    fromTarget.current.copy(controls?.target ?? fallbackTarget.current);
     transitionBlend.current = 0;
     // Only re-center camera on focus change — not when sim time advances.
   }, [focusId, camera]);
@@ -91,6 +142,19 @@ export function CameraRig({ focusId, simDays, simDaysRef }: CameraRigProps) {
       camera.fov = 45;
       camera.near = 0.01;
       camera.far = Math.max(godsViewDistance() * 24, viewDistance * 6, 2000);
+      const offsetY = filmOffsetRef.current;
+      if (Math.abs(offsetY) > 0.5) {
+        camera.setViewOffset(
+          size.width,
+          size.height,
+          0,
+          offsetY,
+          size.width,
+          size.height,
+        );
+      } else {
+        camera.clearViewOffset();
+      }
       camera.updateProjectionMatrix();
     }
   });

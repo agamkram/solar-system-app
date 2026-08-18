@@ -14,6 +14,11 @@ export const SPEED_OPTIONS = [
   { label: "1 month/s", value: 30 },
   ...MONTH_SPEED_STEPS,
   { label: "1 year/s", value: 365 },
+  { label: "2 years/s", value: 730 },
+  { label: "3 years/s", value: 1095 },
+  { label: "4 years/s", value: 1460 },
+  { label: "5 years/s", value: 1825 },
+  { label: "10 years/s", value: 3650 },
 ] as const;
 
 export function formatSimDate(simDays: number): string {

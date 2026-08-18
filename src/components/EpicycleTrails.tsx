@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
 import { BODIES, BODY_BY_ID, type BodyDefinition } from "@/lib/bodies";
 import { isMobileDevice } from "@/lib/device-profile";
-
-const TRAIL_COLORS: Record<string, number> = {
-  sun: 0xffc107,
-  mercury: 0x1b5e20,
-  venus: 0x6a1b9a,
-  earth: 0x29b6f6,
-  mars: 0xe53935,
-  jupiter: 0xf57c00,
-  saturn: 0xba68c8,
-  uranus: 0x558b2f,
-  neptune: 0x3949ab,
-  pluto: 0xec407a,
-};
+import {
+  appendGpuTrailPoints,
+  clearGpuTrail,
+  createGpuTrail,
+  disposeGpuTrail,
+  setGpuTrailColor,
+  setGpuTrailPoints,
+  setGpuTrailResolution,
+} from "@/lib/gpu-trail";
+import { trailColor, type TrailColorMode } from "@/lib/trail-colors";
 
 const MAX_TRAIL_POINTS = isMobileDevice() ? 3_500 : 6_000;
+/** Max sim-days between recorded trail samples — keeps curves smooth at high speed. */
 const MAX_DAYS_PER_SAMPLE = 0.35;
 const MAX_SAMPLES_PER_FRAME = isMobileDevice() ? 120 : 220;
-const TRAIL_OPACITY = 0.9;
+const TRAIL_LINE_WIDTH = 0.35;
+const TRAIL_OPACITY = 1;
+
+const FOCUS_POS = new THREE.Vector3();
+const BODY_POS = new THREE.Vector3();
 
 interface EpicycleTrailsProps {
   focusId: string;
@@ -32,7 +34,13 @@ interface EpicycleTrailsProps {
   tracing: boolean;
   dissolve: boolean;
   traceResetKey: number;
+  colorMode: TrailColorMode;
 }
+
+type TrailBuf = {
+  xyz: Float32Array;
+  count: number;
+};
 
 function traceTargets(focusId: string): BodyDefinition[] {
   return BODIES.filter(
@@ -40,144 +48,177 @@ function traceTargets(focusId: string): BodyDefinition[] {
   );
 }
 
+function makeTrail(): TrailBuf {
+  return { xyz: new Float32Array(256 * 3), count: 0 };
+}
+
+function trailPush(buf: TrailBuf, x: number, y: number, z: number): void {
+  if (buf.count * 3 >= buf.xyz.length) {
+    const next = new Float32Array(buf.xyz.length * 2);
+    next.set(buf.xyz);
+    buf.xyz = next;
+  }
+  const o = buf.count * 3;
+  buf.xyz[o] = x;
+  buf.xyz[o + 1] = y;
+  buf.xyz[o + 2] = z;
+  buf.count += 1;
+}
+
+function trailKeepLast(buf: TrailBuf, keep: number): boolean {
+  if (buf.count <= keep) return false;
+  const drop = buf.count - keep;
+  buf.xyz.copyWithin(0, drop * 3, buf.count * 3);
+  buf.count = keep;
+  return true;
+}
+
 function appendSample(
-  trails: Map<string, THREE.Vector3[]>,
+  trails: Map<string, TrailBuf>,
   focusId: string,
   targets: BodyDefinition[],
   simDays: number,
   dissolve: boolean,
-) {
+): boolean {
   const states = getBodyStates(simDays);
-  const focusPos = states.get(focusId)?.localPosition;
-  if (!focusPos) return;
+  const focusState = states.get(focusId);
+  if (!focusState) return false;
+  FOCUS_POS.copy(focusState.localPosition);
 
+  let spliced = false;
   for (const body of targets) {
-    const bodyPos = states.get(body.id)?.localPosition;
-    if (!bodyPos) continue;
+    const bodyState = states.get(body.id);
+    if (!bodyState) continue;
+    BODY_POS.copy(bodyState.localPosition).sub(FOCUS_POS);
 
-    const rel = bodyPos.clone().sub(focusPos);
-    const trail = trails.get(body.id) ?? [];
-    const last = trail[trail.length - 1];
-    if (last && last.distanceToSquared(rel) < 1e-10) continue;
-
-    trail.push(rel);
-    if (dissolve && trail.length > MAX_TRAIL_POINTS) {
-      trail.splice(0, trail.length - MAX_TRAIL_POINTS);
+    const trail = trails.get(body.id) ?? makeTrail();
+    if (trail.count > 0) {
+      const o = (trail.count - 1) * 3;
+      const dx = trail.xyz[o] - BODY_POS.x;
+      const dy = trail.xyz[o + 1] - BODY_POS.y;
+      const dz = trail.xyz[o + 2] - BODY_POS.z;
+      if (dx * dx + dy * dy + dz * dz < 1e-10) {
+        trails.set(body.id, trail);
+        continue;
+      }
     }
+
+    trailPush(trail, BODY_POS.x, BODY_POS.y, BODY_POS.z);
+    if (dissolve && trailKeepLast(trail, MAX_TRAIL_POINTS)) spliced = true;
     trails.set(body.id, trail);
   }
+  return spliced;
 }
 
 function appendTrailSegment(
-  trails: Map<string, THREE.Vector3[]>,
+  trails: Map<string, TrailBuf>,
   focusId: string,
   targets: BodyDefinition[],
   fromDays: number,
   toDays: number,
   dissolve: boolean,
-) {
+): boolean {
   const delta = toDays - fromDays;
-  if (Math.abs(delta) < 1e-9) return;
+  if (Math.abs(delta) < 1e-9) return false;
 
   const steps = Math.min(
     MAX_SAMPLES_PER_FRAME,
     Math.max(1, Math.ceil(Math.abs(delta) / MAX_DAYS_PER_SAMPLE)),
   );
 
+  let spliced = false;
   for (let step = 1; step <= steps; step++) {
     const day = fromDays + (delta * step) / steps;
-    appendSample(trails, focusId, targets, day, dissolve);
+    if (appendSample(trails, focusId, targets, day, dissolve)) spliced = true;
   }
+  return spliced;
 }
 
-/**
- * Epicycle trails as WebGL lines in camera/focus-relative space.
- * No DOM overlay.
- */
 export function EpicycleTrails({
   focusId,
   simDaysRef,
   tracing,
   dissolve,
   traceResetKey,
+  colorMode,
 }: EpicycleTrailsProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  const meshesRef = useRef<Map<string, THREE.Mesh>>(new Map());
+  const trailsRef = useRef<Map<string, TrailBuf>>(new Map());
+  const lastSampledDaysRef = useRef<number | null>(null);
+  const lastResKey = useRef("");
+  const { camera, size, gl } = useThree();
+
   const focus = BODY_BY_ID[focusId];
   const targets = useMemo(() => traceTargets(focusId), [focusId]);
 
-  const trailsRef = useRef<Map<string, THREE.Vector3[]>>(new Map());
-  const lastSampledDaysRef = useRef<number | null>(null);
-  const linesRef = useRef<Map<string, THREE.Line>>(new Map());
-  const groupRef = useRef<THREE.Group>(null);
+  const seedTrails = (days: number) => {
+    if (!focus) return;
+    const next = new Map<string, TrailBuf>();
+    appendSample(next, focusId, targets, days, false);
+    trailsRef.current = next;
+    lastSampledDaysRef.current = days;
+    for (const [id, mesh] of meshesRef.current) {
+      const trail = next.get(id);
+      if (!trail) {
+        clearGpuTrail(mesh);
+        continue;
+      }
+      setGpuTrailPoints(mesh, trail.xyz, trail.count);
+    }
+  };
 
-  // Build / refresh line objects when targets change
   useEffect(() => {
+    seedTrails(simDaysRef.current ?? 0);
+  }, [focusId, tracing, traceResetKey, targets]);
+
+  useLayoutEffect(() => {
     const group = groupRef.current;
     if (!group) return;
 
-    // Dispose old
-    for (const line of linesRef.current.values()) {
-      group.remove(line);
-      line.geometry.dispose();
-      (line.material as THREE.Material).dispose();
-    }
-    linesRef.current.clear();
-
+    const meshes = new Map<string, THREE.Mesh>();
     for (const body of targets) {
-      const geo = new THREE.BufferGeometry();
-      // Placeholder single point until samples arrive
-      geo.setAttribute(
-        "position",
-        new THREE.BufferAttribute(new Float32Array(6), 3),
-      );
-      geo.setDrawRange(0, 0);
-      const mat = new THREE.LineBasicMaterial({
-        color: TRAIL_COLORS[body.id] ?? 0xaaaaaa,
-        transparent: true,
+      const mesh = createGpuTrail({
+        color: trailColor(body.id, colorMode),
+        pixelWidth: TRAIL_LINE_WIDTH,
         opacity: TRAIL_OPACITY,
-        depthWrite: false,
       });
-      const line = new THREE.Line(geo, mat);
-      line.frustumCulled = false;
-      line.renderOrder = -4;
-      group.add(line);
-      linesRef.current.set(body.id, line);
+      group.add(mesh);
+      meshes.set(body.id, mesh);
+    }
+    meshesRef.current = meshes;
+    lastResKey.current = "";
+
+    for (const [id, trail] of trailsRef.current) {
+      const mesh = meshes.get(id);
+      if (mesh) setGpuTrailPoints(mesh, trail.xyz, trail.count);
     }
 
     return () => {
-      for (const line of linesRef.current.values()) {
-        group.remove(line);
-        line.geometry.dispose();
-        (line.material as THREE.Material).dispose();
+      for (const mesh of meshes.values()) {
+        group.remove(mesh);
+        disposeGpuTrail(mesh);
       }
-      linesRef.current.clear();
+      meshesRef.current = new Map();
     };
   }, [targets]);
 
-  // Seed trails on focus / reset / enable
   useEffect(() => {
-    if (!tracing || !focus) return;
-    const days = simDaysRef.current ?? 0;
-    const next = new Map<string, THREE.Vector3[]>();
-    const states = getBodyStates(days);
-    const focusPos = states.get(focusId)?.localPosition;
-    if (!focusPos) return;
-
-    for (const body of targets) {
-      const bodyPos = states.get(body.id)?.localPosition;
-      if (!bodyPos) continue;
-      next.set(body.id, [bodyPos.clone().sub(focusPos)]);
+    for (const [id, mesh] of meshesRef.current) {
+      setGpuTrailColor(mesh, trailColor(id, colorMode));
     }
-    trailsRef.current = next;
-    lastSampledDaysRef.current = days;
-  }, [focusId, tracing, traceResetKey, targets, focus, simDaysRef]);
+  }, [colorMode]);
 
   useFrame(() => {
     if (!tracing || !focus) return;
 
+    camera.updateMatrixWorld();
+
     const days = simDaysRef.current ?? 0;
     const last = lastSampledDaysRef.current;
+    let spliced = false;
     if (last !== null && days !== last) {
-      appendTrailSegment(
+      spliced = appendTrailSegment(
         trailsRef.current,
         focusId,
         targets,
@@ -188,44 +229,38 @@ export function EpicycleTrails({
       lastSampledDaysRef.current = days;
     }
 
-    // Trails are focus-relative; group stays at origin (camera targets focus).
+    const cssW = Math.max(1, size.width);
+    const cssH = Math.max(1, size.height);
+    const bufferW = gl.domElement.width || cssW;
+    const bufferH = gl.domElement.height || cssH;
+    const resKey = `${bufferW}x${bufferH}x${cssW}x${cssH}`;
+    const resChanged = lastResKey.current !== resKey;
+    if (resChanged) lastResKey.current = resKey;
+
     for (const body of targets) {
-      const pts = trailsRef.current.get(body.id);
-      const line = linesRef.current.get(body.id);
-      if (!pts || !line || pts.length < 2) {
-        if (line) line.geometry.setDrawRange(0, 0);
-        continue;
+      const mesh = meshesRef.current.get(body.id);
+      const trail = trailsRef.current.get(body.id);
+      if (!mesh || !trail) continue;
+
+      if (resChanged) {
+        setGpuTrailResolution(
+          mesh,
+          bufferW,
+          bufferH,
+          cssW,
+          cssH,
+          TRAIL_LINE_WIDTH,
+        );
       }
 
-      // Capacity must be a multiple of 3 floats (one vec3 per vertex).
-      // A length like 64 is NOT divisible by 3 → Three reads past the array → NaN.
-      const needFloats = pts.length * 3;
-      let pos = line.geometry.getAttribute("position") as
-        | THREE.BufferAttribute
-        | undefined;
-      if (!pos || pos.array.length < needFloats) {
-        const capVerts = Math.max(pts.length, 32);
-        pos = new THREE.BufferAttribute(new Float32Array(capVerts * 3), 3);
-        line.geometry.setAttribute("position", pos);
+      const gpuCount = mesh.userData.pointCount as number;
+      if (spliced || trail.count < gpuCount) {
+        setGpuTrailPoints(mesh, trail.xyz, trail.count);
+      } else if (trail.count > gpuCount) {
+        appendGpuTrailPoints(mesh, trail.xyz, gpuCount, trail.count);
       }
-
-      const arr = pos.array as Float32Array;
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i];
-        const o = i * 3;
-        arr[o] = p.x;
-        arr[o + 1] = p.y;
-        arr[o + 2] = p.z;
-      }
-      // Zero unused capacity so any full-buffer walk cannot see stale NaNs.
-      for (let o = needFloats; o < arr.length; o++) arr[o] = 0;
-      pos.needsUpdate = true;
-      // Only draw filled verts (capacity may be larger; do not assign pos.count — read-only in types).
-      line.geometry.setDrawRange(0, pts.length);
     }
   });
-
-  if (!tracing) return null;
 
   return <group ref={groupRef} />;
 }

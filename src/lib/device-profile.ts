@@ -35,16 +35,30 @@ export function isPhoneDevice(): boolean {
   );
 }
 
-export function canvasDpr(): number | [number, number] {
-  return isMobileDevice() ? 1 : [1, 2];
+export function canvasDpr(): [number, number] {
+  return [1, 2];
 }
 
-export function sphereSegments(bodyId: string, kind: string): number {
+/** Distant bodies stay cheap; the thing filling the screen gets a round limb. */
+export function sphereSegments(
+  bodyId: string,
+  kind: string,
+  close: boolean,
+): number {
   const phone = isPhoneDevice();
   const mobile = isMobileDevice();
-  if (bodyId === "earth") return phone ? 48 : mobile ? 64 : 96;
+  if (close) {
+    if (kind === "star") return phone ? 128 : 192;
+    return phone ? 192 : mobile ? 256 : 320;
+  }
+  if (bodyId === "earth") return phone ? 48 : mobile ? 64 : 80;
   if (kind === "star") return phone ? 32 : mobile ? 48 : 64;
-  return phone ? 32 : mobile ? 48 : 72;
+  return phone ? 32 : mobile ? 48 : 64;
+}
+
+export function ringSegments(close: boolean): number {
+  if (close) return isPhoneDevice() ? 192 : 320;
+  return isPhoneDevice() ? 48 : 96;
 }
 
 export function maxConcurrentTextureLoads(): number {
@@ -62,14 +76,15 @@ export function useTextureMipmaps(): boolean {
   return !isPhoneDevice();
 }
 
-/** Max samples per orbit path for canvas overlay (CPU only, no GPU verts). */
-export function orbitLineDivisionCap(): number {
-  if (isPhoneDevice()) return 72;
-  if (isMobileDevice()) return 180;
-  return 600;
+/** Close-up orbits get dense samples; far orbits stay complete but cheap. */
+export function orbitLineDivisionCap(close = false): number {
+  if (!close) return isPhoneDevice() ? 160 : 220;
+  if (isPhoneDevice()) return 512;
+  if (isMobileDevice()) return 768;
+  return 1024;
 }
 
-/** On phone only load sun + the focused body — others load when selected. */
+/** On phone: sun, the focused body, and the giants visible from the default view. */
 export function shouldLoadBodyTextureOnPhone(
   bodyId: string,
   focusId: string,
@@ -77,6 +92,7 @@ export function shouldLoadBodyTextureOnPhone(
 ): boolean {
   if (!isPhoneDevice()) return true;
   if (bodyId === "sun" || bodyId === focusId) return true;
+  if (bodyId === "jupiter" || bodyId === "saturn") return true;
   // Moons load when their parent planet is focused (Earth's Moon, Titan, etc.)
   if (parentId && parentId === focusId) return true;
   return false;

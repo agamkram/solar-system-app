@@ -66,28 +66,27 @@
   }
 }
 
-html {
-  height: 100%;
-  height: -webkit-fill-available;
-  overscroll-behavior: none;
-}
-
+html,
 body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
   min-height: 100%;
-  min-height: 100dvh;
   min-height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
-  /* Prefer taps; don't start document pan/zoom from UI chrome */
-  touch-action: manipulation;
   background: var(--background);
   color: var(--foreground);
+  touch-action: manipulation;
 }
 
+/* SuperMoon #stage: Safari overpaints env(); PWA uses fillH below. Never 100dvh. */
 .viewer-root {
-  position: relative;
-  height: 100dvh;
-  height: -webkit-fill-available;
+  position: fixed;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: calc(-1 * env(safe-area-inset-right, 0px));
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: calc(-1 * env(safe-area-inset-left, 0px));
   overflow: hidden;
   background: #02040a;
 }
@@ -144,58 +143,79 @@ body {
 }
 
 /* Phone: full-width track inside the card */
-.time-controls-card .time-controls-slider {
+.dock-slider {
   width: 100%;
   box-sizing: border-box;
 }
 
 .orb-picker-panel {
   box-sizing: border-box;
-  padding: 0.28rem;
+  padding: 0.28rem 0.5rem;
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .orb-picker {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.2rem;
-}
-
-.orb-picker .orb-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   width: 100%;
   min-width: 0;
-  padding: 0.26rem 0.18rem;
-  font-size: 0.65rem;
-  line-height: 1.1;
+}
+
+.orb-picker-name {
+  margin: 0;
+  flex: 0 0 7.2ch;
+  width: 7.2ch;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.15;
+  color: rgb(224 242 254 / 0.95);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.orb-picker-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.orb-picker-tone {
+  flex: 0 0 auto;
+  min-width: 2.7rem;
+  margin: 0;
+  padding: 0.12rem 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(226 232 240 / 0.9);
+  font-size: 0.6rem;
+  font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 html.pwa-standalone,
 html.pwa-standalone body {
-  height: 100%;
-  min-height: 100%;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  height: calc(var(--pwa-fill-h, 100%) + var(--pwa-extra-b, 0px));
+  min-height: calc(var(--pwa-fill-h, 100%) + var(--pwa-extra-b, 0px));
   max-height: none;
 }
 
 html.pwa-standalone .viewer-root {
-  position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
   width: 100%;
-  height: 100%;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  height: calc(var(--pwa-fill-h, 100%) + var(--pwa-extra-b, 0px));
+  min-height: 0;
 }
 
 /* Bottom dock — above WebGL (sibling of scene, not nested under it).
    DOM children: [planet picker, time card].
    Do NOT set width:100% here — with left/right insets that overflows the viewport. */
 .viewer-orb-dock {
-  position: absolute;
+  position: fixed;
   left: 0.75rem;
   right: 0.75rem;
   bottom: 0.75rem;
@@ -221,7 +241,7 @@ html.pwa-standalone .viewer-root {
 }
 
 /* Default slider (overridden larger on tablet/desktop) */
-.time-controls-card .time-controls-slider {
+.dock-slider {
   height: 1.25rem;
   padding: 0.4rem 0;
   background: transparent;
@@ -232,19 +252,19 @@ html.pwa-standalone .viewer-root {
   -webkit-touch-callout: none;
 }
 
-.time-controls-card .time-controls-slider::-webkit-slider-runnable-track {
+.dock-slider::-webkit-slider-runnable-track {
   height: 0.28rem;
   border-radius: 9999px;
   background: rgb(255 255 255 / 0.18);
 }
 
-.time-controls-card .time-controls-slider::-moz-range-track {
+.dock-slider::-moz-range-track {
   height: 0.28rem;
   border-radius: 9999px;
   background: rgb(255 255 255 / 0.18);
 }
 
-.time-controls-card .time-controls-slider::-webkit-slider-thumb {
+.dock-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 1.15rem;
@@ -255,7 +275,7 @@ html.pwa-standalone .viewer-root {
   background: rgb(56 189 248);
 }
 
-.time-controls-card .time-controls-slider::-moz-range-thumb {
+.dock-slider::-moz-range-thumb {
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 9999px;
@@ -338,6 +358,7 @@ html.pwa-standalone .viewer-root {
     display: flex;
     align-items: center;
     justify-content: stretch;
+    padding: 0.4rem 0.65rem;
   }
 
   .time-controls-card {
@@ -358,7 +379,7 @@ html.pwa-standalone .viewer-root {
     max-width: none !important;
   }
 
-  .time-controls-card .time-controls-slider {
+  .dock-slider {
     display: block !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -368,19 +389,19 @@ html.pwa-standalone .viewer-root {
     background: transparent !important;
   }
 
-  .time-controls-card .time-controls-slider::-webkit-slider-runnable-track {
+  .dock-slider::-webkit-slider-runnable-track {
     height: 0.4rem !important;
     border-radius: 9999px;
     background: rgb(255 255 255 / 0.18);
   }
 
-  .time-controls-card .time-controls-slider::-moz-range-track {
+  .dock-slider::-moz-range-track {
     height: 0.4rem !important;
     border-radius: 9999px;
     background: rgb(255 255 255 / 0.18);
   }
 
-  .time-controls-card .time-controls-slider::-webkit-slider-thumb {
+  .dock-slider::-webkit-slider-thumb {
     -webkit-appearance: none !important;
     width: 1.5rem !important;
     height: 1.5rem !important;
@@ -391,7 +412,7 @@ html.pwa-standalone .viewer-root {
     background: rgb(56 189 248) !important;
   }
 
-  .time-controls-card .time-controls-slider::-moz-range-thumb {
+  .dock-slider::-moz-range-thumb {
     width: 1.5rem !important;
     height: 1.5rem !important;
     border-width: 2px !important;
@@ -404,16 +425,6 @@ html.pwa-standalone .viewer-root {
 @media (pointer: coarse) {
   body {
     max-height: none;
-  }
-
-  .viewer-root {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    min-height: var(--app-height, 100vh);
-    min-height: -webkit-fill-available;
-    overflow: hidden;
   }
 }
 

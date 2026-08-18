@@ -18,30 +18,39 @@ function hasKeplerianOrbit(body: BodyDefinition): boolean {
   return body.parentId === "sun" && body.distanceAu > 0;
 }
 
-export function worldPerPixel(
+function worldPerPixelAt(
   camera: THREE.Camera,
   viewportHeight: number,
+  distance: number,
 ): number {
   const perspective = camera as THREE.PerspectiveCamera;
-  const dist = Math.max(0.8, camera.position.length());
+  const dist = Math.max(0.04, distance);
   const vFov = (perspective.fov ?? 45) * DEG;
   return (2 * dist * Math.tan(vFov / 2)) / Math.max(1, viewportHeight);
 }
 
-/** Sample count from on-screen orbit size. Canvas round-joins need fewer points. */
+/**
+ * Sample count: ~1.2px along the near side of the path, capped.
+ */
 export function orbitLineDivisions(
   semiMajor: number,
   camera: THREE.Camera,
   viewportHeight: number,
   eccentricity = 0,
+  close = false,
 ): number {
-  const wpp = worldPerPixel(camera, viewportHeight);
-  const projectedRadiusPx = semiMajor / wpp;
-  const projectedPerimeterPx =
-    TAU * projectedRadiusPx * Math.sqrt((1 + eccentricity * eccentricity) / 2);
-  const byScreen = Math.ceil(projectedPerimeterPx / 1.5);
-  const cap = orbitLineDivisionCap();
-  return Math.min(cap, Math.max(40, byScreen));
+  const camDist = camera.position.length();
+  const nearDist = Math.max(
+    0.05,
+    Math.min(camDist, Math.abs(camDist - semiMajor)),
+  );
+  const wpp = worldPerPixelAt(camera, viewportHeight, nearDist);
+  const radiusScale = Math.sqrt((1 + eccentricity * eccentricity) / 2);
+  const radius = Math.max(0.05, semiMajor) * radiusScale;
+  const perimeter = TAU * radius;
+  const byPixel = Math.ceil(perimeter / Math.max(1e-6, 1.2 * wpp));
+  const cap = orbitLineDivisionCap(close);
+  return Math.min(cap, Math.max(close ? 160 : 64, byPixel));
 }
 
 function solveKepler(meanAnomaly: number, eccentricity: number): number {
@@ -239,7 +248,7 @@ class KeplerOrbitCurve extends THREE.Curve<THREE.Vector3> {
   }
 }
 
-export function createOrbitCurve(
+function createOrbitCurve(
   body: BodyDefinition,
   semiMajor?: number,
 ): THREE.Curve<THREE.Vector3> {
@@ -259,17 +268,7 @@ export function buildOrbitLinePoints(
   return createOrbitCurve(body, semiMajor).getSpacedPoints(divisions);
 }
 
-export function buildOrbitLoopPoints(
-  body: BodyDefinition,
-  semiMajor?: number,
-  divisions?: number,
-): THREE.Vector3[] {
-  const majorAxis = semiMajor ?? orbitRadiusScene(body.distanceAu);
-  const count = divisions ?? Math.min(orbitLineDivisionCap(), 256);
-  return buildOrbitLinePoints(body, semiMajor, count);
-}
-
-export function rotationSpeedRadPerDay(rotationPeriodHours: number): number {
+function rotationSpeedRadPerDay(rotationPeriodHours: number): number {
   if (rotationPeriodHours === 0) return 0;
   const direction = rotationPeriodHours < 0 ? -1 : 1;
   const hours = Math.abs(rotationPeriodHours);

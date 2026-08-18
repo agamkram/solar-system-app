@@ -5,9 +5,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { getBodyStates } from "@/lib/body-states-cache";
-import { type BodyDefinition } from "@/lib/bodies";
+import { BODY_BY_ID, type BodyDefinition } from "@/lib/bodies";
 import {
   isPhoneDevice,
+  ringSegments,
   shouldLoadBodyTextureOnPhone,
   sphereSegments,
 } from "@/lib/device-profile";
@@ -21,6 +22,13 @@ export interface CelestialBodyMeshProps {
   body: BodyDefinition;
   focusId: string;
   simDaysRef: React.RefObject<number>;
+}
+
+function bodyIsClose(body: BodyDefinition, focusId: string): boolean {
+  if (body.id === focusId) return true;
+  if (body.parentId === focusId) return true;
+  const focus = BODY_BY_ID[focusId];
+  return Boolean(focus?.parentId && focus.parentId === body.id);
 }
 
 const PLACEHOLDER_COLORS: Record<string, string> = {
@@ -103,11 +111,16 @@ interface BodyMeshVisualProps extends CelestialBodyMeshProps {
   ringMap: THREE.Texture | null;
 }
 
-function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
+function BodyPlaceholderMesh({
+  body,
+  focusId,
+  simDaysRef,
+}: CelestialBodyMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
   const radius = bodyRadiusScene(body.radiusKm);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
-  const segments = sphereSegments(body.id, body.kind);
+  const close = bodyIsClose(body, focusId);
+  const segments = sphereSegments(body.id, body.kind, close);
   const color = body.color ?? PLACEHOLDER_COLORS[body.id] ?? "#888888";
 
   useBodyMotion(groupRef, body, simDaysRef);
@@ -138,6 +151,7 @@ function BodyPlaceholderMesh({ body, simDaysRef }: CelestialBodyMeshProps) {
 
 function CelestialBodyVisual({
   body,
+  focusId,
   simDaysRef,
   map,
   atmosphereMap,
@@ -147,7 +161,8 @@ function CelestialBodyVisual({
   const { gl } = useThree();
   const radius = bodyRadiusScene(body.radiusKm);
   const tiltRad = (body.axialTiltDeg * Math.PI) / 180;
-  const segments = sphereSegments(body.id, body.kind);
+  const close = bodyIsClose(body, focusId);
+  const segments = sphereSegments(body.id, body.kind, close);
   const placeholderColor =
     body.color ?? PLACEHOLDER_COLORS[body.id] ?? "#888888";
 
@@ -156,13 +171,9 @@ function CelestialBodyVisual({
   const ringGeometry = useMemo(
     () =>
       body.ringTexture
-        ? createSaturnRingGeometry(
-            ringInner,
-            ringOuter,
-            isPhoneDevice() ? 48 : 128,
-          )
+        ? createSaturnRingGeometry(ringInner, ringOuter, ringSegments(close))
         : null,
-    [body.ringTexture, ringInner, ringOuter],
+    [body.ringTexture, ringInner, ringOuter, close],
   );
 
   useEffect(() => {
@@ -240,7 +251,7 @@ function CelestialBodyVisual({
 
         {body.atmosphereTexture && !useProceduralAtmosphere && atmosphereMap && (
           <mesh>
-            <sphereGeometry args={[radius * 1.002, 48, 48]} />
+            <sphereGeometry args={[radius * 1.002, segments, segments]} />
             <meshPhongMaterial
               map={atmosphereMap}
               transparent
