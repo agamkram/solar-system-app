@@ -102,6 +102,13 @@ export function SolarSystemViewer() {
   const [titleReady, setTitleReady] = useState(false);
   useEffect(() => {
     setTitleReady(true);
+    const blockCallout = (event: Event) => event.preventDefault();
+    document.addEventListener("contextmenu", blockCallout);
+    document.addEventListener("selectstart", blockCallout);
+    return () => {
+      document.removeEventListener("contextmenu", blockCallout);
+      document.removeEventListener("selectstart", blockCallout);
+    };
   }, []);
 
   const titleChrome =

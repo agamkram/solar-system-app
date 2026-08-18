@@ -78,6 +78,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.app-title,
+.time-controls-card,
+.orb-picker-panel,
+.viewer-action-btns,
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* SuperMoon #stage: Safari overpaints env(); PWA uses fillH below. Never 100dvh. */
