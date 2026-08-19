@@ -20,15 +20,16 @@ const michroma = Michroma({
 });
 
 export const metadata: Metadata = {
-  title: "SolarSystem",
+  title: "Solar System — 3D sun, planets, moons, and Pluto | Mark Maga",
   description:
     "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL("https://solarsystem.markmaga.com"),
+  alternates: { canonical: "https://solarsystem.markmaga.com/" },
   openGraph: {
     type: "website",
     siteName: "Mark Maga",
-    title: "SolarSystem",
+    title: "Solar System — 3D sun, planets, moons, and Pluto",
     description:
       "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
     url: "https://solarsystem.markmaga.com/",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "SolarSystem",
+    title: "Solar System — 3D sun, planets, moons, and Pluto",
     description:
       "Explore the Sun, planets, Pluto, and moons in an interactive 3D solar system.",
     images: ["/icon-512.png"],
